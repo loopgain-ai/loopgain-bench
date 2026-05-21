@@ -1,0 +1,49 @@
+{
+  "snapshot": {
+    "date": "2026-05-21",
+    "purpose": "Frozen provider pricing snapshot for LoopGain Bench cost computation. Per BENCH_PROTOCOL.md methodology lockdown #1, this file is committed at bench start and not modified during the run. All $-per-task numbers reported in bench results are computed against these rates.",
+    "sources": [
+      "https://platform.claude.com/docs/en/about-claude/pricing",
+      "https://openai.com/api/pricing/",
+      "https://developers.openai.com/api/docs/pricing"
+    ],
+    "notes": [
+      "Standard rates only. No batch-API discount applied (bench is real-time, not batched).",
+      "No prompt-caching discount applied. If a cell enables prompt caching, that cell MUST disclose it and use the cached rates explicitly.",
+      "Prices are USD per 1,000,000 tokens. To compute trial cost: (input_tokens * input_per_million + output_tokens * output_per_million) / 1_000_000.",
+      "Embedding models charge a single rate regardless of input/output (embeddings have no output tokens in the completion sense)."
+    ]
+  },
+  "models": {
+    "claude-haiku-4-5": {
+      "provider": "anthropic",
+      "input_per_million_usd": 1.00,
+      "output_per_million_usd": 5.00,
+      "cache_write_per_million_usd": 1.25,
+      "cache_read_per_million_usd": 0.10,
+      "used_in_cells": ["W1-langgraph", "W1-claude-agent-sdk", "W4-langchain", "W5-all"]
+    },
+    "claude-sonnet-4-6": {
+      "provider": "anthropic",
+      "input_per_million_usd": 3.00,
+      "output_per_million_usd": 15.00,
+      "cache_write_per_million_usd": 3.75,
+      "cache_read_per_million_usd": 0.30,
+      "used_in_cells": ["W3-langgraph"]
+    },
+    "gpt-4.1-mini": {
+      "provider": "openai",
+      "input_per_million_usd": 0.40,
+      "output_per_million_usd": 1.60,
+      "cache_read_per_million_usd": 0.10,
+      "used_in_cells": ["W2-autogen", "W2-crewai", "W3-openai-agents-sdk"]
+    },
+    "text-embedding-3-small": {
+      "provider": "openai",
+      "input_per_million_usd": 0.02,
+      "output_per_million_usd": 0.0,
+      "used_in_cells": ["W4-langchain"],
+      "note": "Embedding-only model. No output cost; charge applies to input tokens."
+    }
+  }
+}

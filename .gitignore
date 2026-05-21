@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.log
+.env
+.env.*
+!.env.example
+
+# Bench-specific
+data/raw/*.jsonl
+data/raw/*.json
+!data/raw/.gitkeep
+data/results/*.json
+data/results/*.csv
+data/results/*.html
+
+# Local-only working dirs
+.loopgain-bench-scratch/

@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "loopgain-bench"
+version = "0.1.0"
+description = "Reproducible benchmark for LoopGain: cost / iterations / quality across real agentic loops, baseline-vs-LoopGain, multi-framework."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "LoopGain Technologies Inc.", email = "hello@loopgain.ai" }]
+keywords = ["llm", "agents", "loopgain", "benchmark", "agentic-ai", "evaluation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "loopgain>=0.2.0",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.40.0"]
+openai = ["openai>=1.40.0"]
+langgraph = ["loopgain[langgraph]"]
+crewai = ["loopgain[crewai]"]
+autogen = ["loopgain[autogen]"]
+langchain = ["loopgain[langchain]"]
+agents-sdk = ["loopgain[openai-agents-sdk]", "loopgain[claude-agent-sdk]"]
+all = [
+    "loopgain-bench[anthropic,openai,langgraph,crewai,autogen,langchain,agents-sdk]",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+]
+
+[project.urls]
+homepage = "https://loopgain.ai/benchmarks"
+repository = "https://github.com/loopgain-ai/loopgain-bench"
+protocol = "https://github.com/loopgain-ai/loopgain-bench/blob/main/BENCH_PROTOCOL.md"
+
+[tool.setuptools.packages.find]
+include = ["bench*", "analysis*"]
+exclude = ["tests*", "data*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
