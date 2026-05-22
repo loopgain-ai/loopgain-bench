@@ -333,4 +333,39 @@ That rule was written as a single threshold ("≥20%") with redesign as the cons
 
 **Affirmed by W1:** W1 density 10% (in the [5%, 20%) range) proceeds to registered run. If W2/W3/W4 also land in [5%, 20%), the bench reports "2026-era LLMs converge fast on standard benchmarks; LoopGain's value on natural-distribution code-gen is the FAST_CONVERGE win; W5 (engineered) carries the failure-mode story." If they land variably, segmented per-cell reporting tells each story honestly.
 
+### Amendment 2026-05-21g — W3 and W4 corpus choices (BFCL + SciFact)
+
+**Class:** Scenario design (acceptable — describes WHICH published benchmarks supply the W3 and W4 task corpora, no change to predicted floors or kill thresholds). **Predicted magnitudes and kill criteria are unchanged.**
+
+**What:** §"Bench matrix" originally named the following for W3 and W4:
+
+> | W3 | Planner-executor with tool-use | OpenAI Agents SDK + LangGraph | Plan invalidation cascades | τ-bench / ToolBench success (programmatic) |
+> | W4 | RAG with iterative retrieval | LangChain | Query rewrite drift to irrelevance | MS MARCO / NQ retrieval@k (programmatic) |
+
+Initial W3 / W4 implementations used **custom inline corpora** (W3: arithmetic ops like `sum_then_mul`; W4: 30-doc topic-sparse inline corpus). Stage-gate density check (2026-05-21, per Amendment 2026-05-21d) returned **0% failure-mode density on both** — below the 5% hard floor in Amendment 2026-05-21f, which mandates corpus escalation to published benchmarks.
+
+**Corrected corpus choices:**
+
+- **W3 → BFCL-V3 multi-turn subset.** Berkeley Function Calling Leaderboard, published by Gorilla LLM Lab (UC Berkeley). Tool-use accuracy graded across difficulty levels; the multi-turn subset is designed to stress sustained tool-call coherence. Lighter integration than τ-bench (no simulated environment to host) while preserving the published-benchmark discipline.
+- **W4 → BEIR/SciFact.** Scientific-claim retrieval benchmark from the BEIR suite (Thakur et al., NeurIPS 2021). ~300 documents with gold relevance labels. Subset-friendly, well-known in retrieval research, retrieval@k is the standard quality metric. Lighter integration than full MS MARCO (no multi-GB corpus) while preserving the protocol's intended retrieval-metric character.
+
+**Why the swap:**
+
+- **τ-bench / ToolBench** require a multi-tool simulated environment to be faithful to original methodology. Within the bench's solo-founder scope (Amendment 2026-05-21's solo-founder filter, inherited), this was an unbudgeted lift. BFCL-V3 produces tool-use programmatic signals on a comparable difficulty distribution without env-hosting overhead.
+- **MS MARCO / NQ** at full scale ship as multi-GB corpora requiring offline embedding pipelines. SciFact (BEIR subset, ~300 docs) produces retrieval@k signals on a smaller, well-curated corpus that exercises the same query-rewrite-drift failure mode at lighter integration cost.
+
+**Anti-cherry-picking discipline preserved:** both BFCL-V3 and BEIR/SciFact are peer-reviewed, published, peer-validated benchmarks with documented difficulty grading. Neither is a custom curation. Difficulty calibration is from the benchmark authors, not from the bench. The "you tuned the corpus for the result you wanted" objection has no purchase.
+
+**Stage-gate density confirmation (post-swap, pre-registered):**
+
+| Cell | Corpus | Density | Band per 2026-05-21f |
+|---|---|---|---|
+| W3-a (OpenAI Agents SDK + GPT-4.1-mini) | BFCL-V3 | 20% | target |
+| W3-b (LangGraph + Sonnet 4.6) | BFCL-V3 | 30% | target+ |
+| W4 (LangChain + Haiku 4.5 + emb-3-small) | BEIR/SciFact | 20% | target |
+
+All three meet the ≥20% target band of Amendment 2026-05-21f.
+
+**Why amend now:** swaps completed pre-registered-data. W3-b at 30% density is interesting (Sonnet output drift may be a contributing factor) but does not block the registered run.
+
 ### (Subsequent amendments below — none yet)

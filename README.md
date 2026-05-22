@@ -6,7 +6,7 @@ Reproducible benchmark for **[LoopGain](https://loopgain.ai)** — measures cost
 
 ## What this measures
 
-LoopGain replaces the universal `max_iterations=N` cap in agentic verify-revise loops with a real-time loop-gain (Aβ) monitor that detects FAST_CONVERGE / CONVERGING / STALLING / OSCILLATING / DIVERGING and rolls back to best-so-far on divergence.
+LoopGain replaces the universal `max_iterations=N` cap in outer-driven iterative LLM loops — any loop where each iteration produces an observable error signal — with a real-time loop-gain (Aβ) monitor that detects FAST_CONVERGE / CONVERGING / STALLING / OSCILLATING / DIVERGING and rolls back to best-so-far on divergence. The bench tests five loop patterns: verify-revise (W1 code-gen), refinement (W5 adversarial shortening), critique-revise debate (W2), planner-executor with tool use (W3), and iterative RAG (W4).
 
 This benchmark answers: *what does that actually save, on real loops, across frameworks?*
 

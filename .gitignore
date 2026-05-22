@@ -20,6 +20,8 @@ data/raw/*.json
 data/results/*.json
 data/results/*.csv
 data/results/*.html
+# Corpus embedding caches — large (~160 MB for SciFact), re-derivable from corpus + provider API.
+data/cache/
 
 # Local-only working dirs
 .loopgain-bench-scratch/

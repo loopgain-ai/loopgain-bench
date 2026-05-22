@@ -29,6 +29,14 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Optional
 
+# Load .env from the repo root if present. Lookup is silent if the file
+# doesn't exist; values already in the environment are not overwritten.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env", override=False)
+except ImportError:
+    pass
+
 from loopgain import LoopGain  # type: ignore
 
 from . import __version__

@@ -62,6 +62,7 @@ def test_mock_workload_generates_deterministic_trials() -> None:
         assert t1.initial_state["facts"] != t2.initial_state["facts"]
 
 
+@pytest.mark.mock_smoke
 @pytest.mark.skipif(
     os.environ.get("BENCH_MOCK") != "1",
     reason="Run with BENCH_MOCK=1 to exercise the runner end-to-end with no API",

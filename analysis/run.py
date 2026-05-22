@@ -177,16 +177,126 @@ def adapter_parity(trials: list[dict]) -> dict:
 
 
 def judge_winrate(raw_dir: Path, tag: str | None = None) -> dict:
-    """Table 2: LLM-judge pairwise winrate LG vs B20 with bootstrap CI.
+    """Table 2: LLM-judge pairwise winrate LG vs B20 with 95% bootstrap CI.
 
-    Reads judge comparisons from data/raw/judge-*.jsonl (produced by a
-    separate `make judge` step that the implementation session adds). Stub
-    returns a contract-shape dict so the rest of the pipeline composes.
+    Reads judge comparisons from data/raw/judge-*.jsonl (produced by
+    bench/judge.py::pairwise_winrate). Aggregates per-workload AND overall.
+    Per BENCH_PROTOCOL.md §"Metrics", LoopGain wins are scored 1.0, ties 0.5,
+    B20 wins 0.0; the reported winrate is the mean across comparisons, with
+    a 95% percentile bootstrap CI computed inline (no scipy).
+
+    Returns a dict shaped:
+        {
+            "implemented": True,
+            "overall": {n, lg_wins, b20_wins, ties, winrate, ci_lo, ci_hi},
+            "by_workload": {workload_id: {…same shape…}},
+            "files_read": [str, …],
+        }
+
+    If no judge files exist yet, returns a contract-shape stub so the rest
+    of the pipeline composes without crashing.
     """
-    return {
-        "implemented": False,
-        "note": "judge_winrate stub — implemented in the Code session along with bench/judge.py",
+    pattern = f"judge-*-{tag}.jsonl" if tag else "judge-*.jsonl"
+    files = sorted(raw_dir.glob(pattern))
+    if not files:
+        return {
+            "implemented": True,
+            "overall": None,
+            "by_workload": {},
+            "files_read": [],
+            "note": f"no judge JSONL files matched {pattern!r} in {raw_dir}",
+        }
+
+    # Per-file aggregation: each comparison contributes a 1.0 / 0.5 / 0.0 score.
+    by_workload: dict[str, list[float]] = {}
+    counts: dict[str, dict[str, int]] = {}
+
+    for path in files:
+        with path.open() as f:
+            header_line = f.readline().strip()
+            if not header_line:
+                continue
+            header = json.loads(header_line)
+            if not header.get("_header"):
+                # Malformed file — first line should be a header. Surface, do
+                # not silently skip (lockdown #5).
+                raise ValueError(f"judge file missing header: {path}")
+            workload_id = header.get("workload_id", "unknown")
+            scores = by_workload.setdefault(workload_id, [])
+            ct = counts.setdefault(workload_id, {"lg_wins": 0, "b20_wins": 0, "ties": 0})
+
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                rec = json.loads(line)
+                if rec.get("_header"):
+                    continue
+                lg_pos = rec.get("lg_position")
+                choice = rec.get("judge_choice")
+                if choice == "TIE":
+                    scores.append(0.5)
+                    ct["ties"] += 1
+                elif (choice == "A" and lg_pos == "A") or (choice == "B" and lg_pos == "B"):
+                    scores.append(1.0)
+                    ct["lg_wins"] += 1
+                elif choice in ("A", "B"):
+                    scores.append(0.0)
+                    ct["b20_wins"] += 1
+                else:
+                    # Defensive: unknown choice -> treat as TIE.
+                    scores.append(0.5)
+                    ct["ties"] += 1
+
+    def _summarize(scores: list[float], ct: dict[str, int]) -> dict:
+        n = len(scores)
+        if n == 0:
+            return {"n": 0, "lg_wins": 0, "b20_wins": 0, "ties": 0,
+                    "winrate": None, "ci_lo": None, "ci_hi": None}
+        winrate = sum(scores) / n
+        ci_lo, ci_hi = _bootstrap_ci(scores, n_resamples=5000, seed=0)
+        return {
+            "n": n,
+            "lg_wins": ct["lg_wins"],
+            "b20_wins": ct["b20_wins"],
+            "ties": ct["ties"],
+            "winrate": winrate,
+            "ci_lo": ci_lo,
+            "ci_hi": ci_hi,
+        }
+
+    per_workload = {wid: _summarize(scores, counts[wid]) for wid, scores in by_workload.items()}
+    overall_scores = [s for scores in by_workload.values() for s in scores]
+    overall_counts = {
+        "lg_wins": sum(c["lg_wins"] for c in counts.values()),
+        "b20_wins": sum(c["b20_wins"] for c in counts.values()),
+        "ties": sum(c["ties"] for c in counts.values()),
     }
+    overall = _summarize(overall_scores, overall_counts)
+
+    return {
+        "implemented": True,
+        "overall": overall,
+        "by_workload": per_workload,
+        "files_read": [str(p) for p in files],
+    }
+
+
+def _bootstrap_ci(
+    scores: list[float], *, n_resamples: int = 5000, seed: int = 0, alpha: float = 0.05
+) -> tuple[float, float]:
+    """95% percentile bootstrap CI over a 0/0.5/1 score vector. No scipy."""
+    import numpy as np
+
+    arr = np.asarray(scores, dtype=float)
+    if arr.size == 0:
+        return (float("nan"), float("nan"))
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, arr.size, size=(n_resamples, arr.size))
+    means = arr[idx].mean(axis=1)
+    lo = float(np.quantile(means, alpha / 2))
+    hi = float(np.quantile(means, 1 - alpha / 2))
+    return (lo, hi)
 
 
 # -------------------- helpers --------------------
@@ -252,7 +362,20 @@ def main() -> None:
 
     judge = judge_winrate(args.input, args.tag)
     (args.output / "judge.json").write_text(json.dumps(judge, indent=2))
-    print(f"  → {args.output / 'judge.json'} (stub — implement in Code session)")
+    n_files = len(judge.get("files_read") or [])
+    overall = judge.get("overall")
+    if overall:
+        print(
+            f"  → {args.output / 'judge.json'} "
+            f"({n_files} judge file(s), n={overall['n']}, "
+            f"winrate={overall['winrate']:.3f}, "
+            f"CI=[{overall['ci_lo']:.3f}, {overall['ci_hi']:.3f}])"
+        )
+    else:
+        print(
+            f"  → {args.output / 'judge.json'} "
+            f"(no judge JSONL yet — run bench/judge.py::pairwise_winrate after `make bench`)"
+        )
 
     print("done.")
 

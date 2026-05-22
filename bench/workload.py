@@ -50,8 +50,13 @@ class Workload(ABC):
     id: str               # e.g. "w5-adversarial-claude-haiku-4-5"
     framework: str        # e.g. "claude-agent-sdk"
     model: str            # e.g. "claude-haiku-4-5"
-    loop_type: str        # e.g. "verify_revise" / "refinement" / "tool_use_retry"
+    loop_type: str        # one of: "verify_revise" / "refinement" / "critique_revise" / "tool_use_retry" / "iterative_retrieval"
     target_error: Optional[float] = None  # passed to LoopGain
+    # Per BENCH_PROTOCOL.md Amendment 2026-05-21c (Lockdown 2a): task_description
+    # must anchor "better" to the workload's error_fn / programmatic metric.
+    # Generic phrasing like "more complete" is forbidden; specific phrasing tied
+    # to the workload's metric is required.
+    task_description: str = ""
 
     @abstractmethod
     def generate_trial(self, seed: int) -> TrialInput:
@@ -98,4 +103,5 @@ class Workload(ABC):
             "model": self.model,
             "loop_type": self.loop_type,
             "target_error": self.target_error,
+            "task_description": self.task_description,
         }

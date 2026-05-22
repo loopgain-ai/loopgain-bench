@@ -34,7 +34,7 @@ langgraph = ["loopgain[langgraph]"]
 crewai = ["loopgain[crewai]"]
 autogen = ["loopgain[autogen]"]
 langchain = ["loopgain[langchain]"]
-agents-sdk = ["loopgain[openai-agents-sdk]", "loopgain[claude-agent-sdk]"]
+agents-sdk = ["loopgain[openai-agents]", "loopgain[claude-agent-sdk]"]
 all = [
     "loopgain-bench[anthropic,openai,langgraph,crewai,autogen,langchain,agents-sdk]",
 ]
@@ -56,3 +56,6 @@ exclude = ["tests*", "data*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+markers = [
+    "mock_smoke: mock-mode end-to-end smoke tests (run with BENCH_MOCK=1)",
+]
