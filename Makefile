@@ -1,4 +1,4 @@
-.PHONY: install install-dev test mock dry-run bench analyze clean
+.PHONY: install install-dev test mock dry-run bench analyze judge judge-dry-run clean
 
 install:
 	pip install -e .
@@ -26,6 +26,16 @@ bench:
 
 analyze:
 	python -m analysis.run --input data/raw/ --output data/results/
+
+# Run pairwise LLM judge on trial JSONLs. Cross-vendor enforced — Anthropic
+# loops are judged by OpenAI gpt-4.1-mini; OpenAI loops are judged by
+# Anthropic claude-haiku-4-5. RAG cells (iterative_retrieval) are skipped —
+# their quality is programmatic (retrieval@k).
+judge-dry-run:
+	python -m bench.judge --input data/raw/ --tag dry-run
+
+judge:
+	python -m bench.judge --input data/raw/ --tag registered
 
 clean:
 	rm -rf data/raw/*.jsonl data/results/*.json data/results/*.csv data/results/*.html

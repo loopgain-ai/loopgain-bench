@@ -226,6 +226,121 @@ def _parse_judge_response(text: str) -> tuple[str, str]:
     return "TIE", f"[unparseable] {raw}"
 
 
+def _pick_judge_model(loop_model: str) -> str:
+    """Pick a cross-vendor judge for the given loop model.
+
+    Anthropic loops -> OpenAI gpt-4.1-mini.
+    OpenAI loops    -> Anthropic claude-haiku-4-5.
+    Embedding-only loops shouldn't ever be judged (RAG's quality signal is
+    programmatic). If called with a non-anthropic / non-openai model, we
+    fall back to gpt-4.1-mini as a default.
+    """
+    if loop_model.startswith("claude-"):
+        return "gpt-4.1-mini"
+    if loop_model.startswith("gpt-") or loop_model.startswith("o"):
+        return "claude-haiku-4-5"
+    return "gpt-4.1-mini"
+
+
+def _load_trial_outputs(jsonl_path: Path) -> tuple[dict, dict, dict]:
+    """From a bench-runner JSONL, return (lg_outputs, b20_outputs, header).
+
+    `lg_outputs` and `b20_outputs` are dict[trial_id -> output_text]. Header
+    is the JSONL's first-line metadata block (cell info, mock_mode, tag, etc.).
+    """
+    lg: dict[str, str] = {}
+    b20: dict[str, str] = {}
+    header: dict = {}
+    with jsonl_path.open() as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            rec = json.loads(line)
+            if rec.get("_header"):
+                header = rec
+                continue
+            if rec.get("_trial_error"):
+                continue
+            tid = rec["trial_id"]
+            lg[tid] = rec["conditions"]["LG"].get("final_output", "") or ""
+            b20[tid] = rec["conditions"]["B20"].get("final_output", "") or ""
+    return lg, b20, header
+
+
+def run_all_cells(
+    raw_dir: Path,
+    tag: str,
+    *,
+    overwrite: bool = False,
+    seed: int = 0,
+) -> dict[str, dict]:
+    """Run pairwise_winrate over every cell JSONL in raw_dir matching `tag`.
+
+    Writes data/raw/judge-<workload_id>-<tag>.jsonl per cell and returns a
+    summary dict {workload_id: winrate_result}.
+    """
+    summary: dict[str, dict] = {}
+    cell_files = sorted(raw_dir.glob(f"*-{tag}.jsonl"))
+    cell_files = [p for p in cell_files if not p.name.startswith("judge-")]
+    if not cell_files:
+        print(f"  [judge] no cell JSONLs in {raw_dir} matching tag={tag!r}")
+        return summary
+
+    for path in cell_files:
+        lg_outs, b20_outs, header = _load_trial_outputs(path)
+        if not lg_outs:
+            print(f"  [judge] skip {path.name}: no trials")
+            continue
+        workload_id = header.get("cell", {}).get("id") or path.stem.rsplit(f"-{tag}", 1)[0]
+        loop_model = header.get("cell", {}).get("model") or ""
+        task_description = header.get("cell", {}).get("task_description") or ""
+
+        # Output-only workloads (e.g. RAG where 'final_output' is just the
+        # rewritten query, not a generated artifact) don't have judgeable
+        # text. The bench's quality story on those rests on programmatic
+        # eval (retrieval@k); skip judge run.
+        if header.get("cell", {}).get("loop_type") == "iterative_retrieval":
+            print(f"  [judge] skip {workload_id}: iterative_retrieval cells use programmatic eval only")
+            continue
+
+        judge_model = _pick_judge_model(loop_model)
+        judge_path = raw_dir / f"judge-{workload_id}-{tag}.jsonl"
+        if judge_path.exists() and not overwrite:
+            print(f"  [judge] skip {workload_id}: {judge_path.name} exists (pass --overwrite to redo)")
+            continue
+
+        print(f"  [judge] {workload_id}  (loop={loop_model}, judge={judge_model}, n={len(lg_outs)})")
+        result = pairwise_winrate(
+            lg_outputs=lg_outs,
+            b20_outputs=b20_outs,
+            task_description=task_description or "(no task_description provided)",
+            judge_model=judge_model,
+            loop_model=loop_model,
+            workload_id=workload_id,
+            tag=tag,
+            raw_dir=raw_dir,
+            seed=seed,
+        )
+        winrate = result.get("winrate_lg")
+        print(
+            f"    → n={result['n_comparisons']} "
+            f"LG_wins={result['lg_wins']} B20_wins={result['b20_wins']} ties={result['ties']} "
+            f"LG_winrate={winrate:.3f}"
+            if winrate is not None and not (isinstance(winrate, float) and (winrate != winrate))
+            else f"    → n={result['n_comparisons']} (insufficient comparisons)"
+        )
+        summary[workload_id] = {
+            "n": result["n_comparisons"],
+            "lg_wins": result["lg_wins"],
+            "b20_wins": result["b20_wins"],
+            "ties": result["ties"],
+            "winrate_lg": winrate,
+            "judge_model": judge_model,
+        }
+    return summary
+
+
 def _enforce_cross_model(loop_model: str, judge_model: str) -> None:
     """Lockdown #2: judge model MUST differ from loop model. Raise loudly."""
     if loop_model == judge_model:
@@ -247,3 +362,24 @@ def _enforce_cross_model(loop_model: str, judge_model: str) -> None:
             f"  [judge warning] both loop ({loop_model}) and judge ({judge_model}) "
             f"are OpenAI family. Prefer cross-vendor."
         )
+
+
+def main() -> None:
+    import argparse
+    p = argparse.ArgumentParser(description="LoopGain Bench pairwise judge runner")
+    p.add_argument("--input", type=Path, default=Path("data/raw"))
+    p.add_argument("--tag", required=True, help="Run tag to judge (e.g. dry-run, registered)")
+    p.add_argument("--overwrite", action="store_true", help="Re-judge cells that already have judge JSONLs")
+    p.add_argument("--seed", type=int, default=0)
+    args = p.parse_args()
+    summary = run_all_cells(args.input, args.tag, overwrite=args.overwrite, seed=args.seed)
+    print()
+    print("=== judge summary ===")
+    for wid, r in summary.items():
+        wr = r["winrate_lg"]
+        wr_str = f"{wr:.3f}" if wr is not None else "n/a"
+        print(f"  {wid:<50} winrate_lg={wr_str}  (n={r['n']}, LG={r['lg_wins']}, B20={r['b20_wins']}, ties={r['ties']})")
+
+
+if __name__ == "__main__":
+    main()
