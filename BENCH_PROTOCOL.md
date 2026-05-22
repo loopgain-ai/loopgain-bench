@@ -220,4 +220,43 @@ The phrase `recommended_min_iterations=6` exists in `loopgain-core/PROTOCOL_v2_c
 
 **Follow-up (non-blocking):** open a verification issue against `loopgain-core` asking whether the v0.2 classifier's DIVERGING emission at n=2 matches the documented decision rule in `PROTOCOL_v2_classifier.md` (which requires `slope_p < P_SIG` with `slope_p` falling back to 1.0 at n=2). If there's a deviation from documented spec, it's a library issue independent of this bench. The bench reports what the shipped library does; library spec/implementation alignment is `loopgain-core` work, post-bench.
 
+### Amendment 2026-05-21b — H-FALSESTOP definition extended for no-programmatic workloads
+
+**Class:** Scenario design / metric definition (acceptable — describes HOW false-stop is computed, no change to predicted floors or kill thresholds). **Predicted magnitudes and kill criteria are unchanged.**
+
+**What:** §"Metrics → Decision-accuracy" defined false-stop rate as:
+
+> **False-stop rate**: % of LoopGain stops where the B20 counterfactual produced strictly better output by BOTH LLM-judge AND programmatic eval.
+
+The AND-rule is well-formed for workloads where programmatic eval is available (W1 HumanEval, W3 ToolBench/τ-bench success, W4 retrieval@k). It is **structurally undefined** for workloads where programmatic eval is N/A by design — currently W5 (adversarial / waste-avoidance only). Under the literal AND-rule, W5 can never trigger H-FALSESTOP regardless of judge outcomes, which makes the metric unusable for that cell.
+
+**Corrected definition (replaces the prior single sentence):**
+
+- **For workloads with programmatic eval (W1, W3, W4):** false-stop = % of LoopGain stops where B20 counterfactual produces strictly better output by BOTH judge AND programmatic eval. Headline metric.
+- **For workloads without programmatic eval (W5, and any future no-programmatic cells):** false-stop = % of LoopGain stops where the judge picks B20. Reported as "false-stop (judge-only)" and segregated from AND-rule numbers in writeups so readers cannot conflate them.
+
+Both forms share the same **predicted floor (≤ 10%)** and the same **kill threshold (> 15%)**. The judge-only form is noisier — but if LoopGain genuinely preserves quality, the judge should mostly find LG-wins or ties, and a judge-only false-stop above 15% is real signal that the rollback is failing on that workload.
+
+**Why discovered:** W5 stage-gate (n=10) judge ruled LG won 9/10, B20 won 1/10 (seed 1). Under the literal AND-rule, that 1/10 doesn't count (no programmatic for W5). The result is technically clean but the metric is structurally vacuous for W5 — which we discovered post-hoc on stage-gate data, *before* registered Phase 2 data is collected.
+
+**Why amend now:** discipline. Amendment timestamped *before* the registered confirmatory run (W1-W4 cells, n≥200) is bulletproof; doing it post-data looks like fitting-to-results even if structurally identical.
+
+### Amendment 2026-05-21c — Judge task-description discipline
+
+**Class:** Methodology / scenario design (acceptable). **Predicted magnitudes and kill criteria unchanged.**
+
+**What:** The judge prompt template (`bench/judge.py::JUDGE_PROMPT_TEMPLATE`) has a `{task_description}` slot filled per workload. Methodology lockdown #2 already required "same judge prompt across all comparisons," but the lockdown did not constrain the task_description's relationship to the workload's quality metric.
+
+**Why discovered:** W5 stage-gate seed-1 spot-check. Judge rationale verbatim:
+
+> *"A The first attempt captures the essential facts concisely while B includes more details but is too long and exceeds the brief requirement."*
+
+A (= B20) preserved 3 of 8 facts; B (= LG) preserved 6 of 8 facts. The judge over-weighted "be brief" and under-weighted "preserve facts" — even though the workload's error_fn is *fact-preservation count*. The task description sent to the judge did not explicitly tie "better" to the error_fn metric, so the judge applied implicit prior weights of its own.
+
+**Discipline (added to methodology lockdowns):**
+
+> **Lockdown 2a — Judge task_description anchored to workload metric.** Every workload's task_description (the string passed to the judge as task context) must explicitly state the dominant quality criterion in terms of the workload's error_fn or programmatic metric. Generic phrasing ("a better attempt is more concise / complete / accurate") is forbidden; specific phrasing ("a better attempt preserves more of {facts} from the source", "a better attempt passes more of the unit tests with no spurious side effects", "a better attempt retrieves more of the gold passages at rank ≤ k") is required.
+
+**Phase 2 implementation note (non-amendment):** the W1-W4 workloads currently being written should set `task_description` strings that explicitly reference the programmatic metric. Code session: when implementing each workload's judge task_description, anchor it to the programmatic eval the workload computes. Otherwise the judge will drift to its own implicit priors and produce noisier rulings.
+
 ### (Subsequent amendments below — none yet)
