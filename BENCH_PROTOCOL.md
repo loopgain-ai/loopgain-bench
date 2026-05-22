@@ -61,7 +61,7 @@ For every cell, every workload is run against four conditions, with identical se
 - B5 — `max_iter=5` (popular LangChain/CrewAI default)
 - B10 — `max_iter=10` (LangGraph default)
 - B20 — `max_iter=20` (production-cautious; serves as ground-truth oracle for what an unconstrained run produces)
-- LG — LoopGain v0.2.0 at default thresholds (`recommended_min_iterations=6`)
+- LG — LoopGain v0.2.0 at default thresholds. Instantiated as `LoopGain(target_error=workload.target_error, max_iterations=20)` with default `TrajectoryThresholds`. The classifier may emit non-INIT band states (including DIVERGING / OSCILLATING) starting at n=2, per `loopgain/core.py:270` and the n=2 special case in `loopgain-core/PROTOCOL_v2_classifier.md`. *See Amendment 2026-05-21 below — earlier wording referenced a `recommended_min_iterations=6` parameter that does not exist in the v0.2.0 API.*
 
 ### Sample size
 
@@ -198,4 +198,26 @@ Amendments to this protocol AFTER 2026-05-21 lock require:
 - A statement of whether the amendment is to *scenario design* (acceptable) or to *predicted magnitudes / kill criteria* (NOT acceptable post-data — that's p-hacking).
 - The PROTOCOL_v2 amendment of 2026-05-18 (Tier-3 converging spec replacement, pre-confirmatory) is the model: scenario design fixed, classifier untouched, amendment timestamped before confirmatory data.
 
-### (Amendments below — none yet)
+### Amendment 2026-05-21 — LG baseline description corrected
+
+**Class:** Scenario design (acceptable — describes WHAT the LG condition is, not what we predict it will produce). **Predicted magnitudes and kill criteria are unchanged.**
+
+**What:** §"Baselines", LG condition, originally read:
+
+> LG — LoopGain v0.2.0 at default thresholds (`recommended_min_iterations=6`)
+
+That parenthetical referenced a parameter that does not exist in the `loopgain` v0.2.0 public API. Verified via `loopgain/core.py:189-198` (`__init__` accepts `target_error`, `max_iterations`, `thresholds`, `trajectory_thresholds`, `classifier`, `smoothing_window`, `assumed_fixed_cap` — no min-iter knob) and `grep -r "min_iter" loopgain/*.py` (no matches).
+
+The phrase `recommended_min_iterations=6` exists in `loopgain-core/PROTOCOL_v2_classifier.md` as **prose guidance about classifier statistical power at short loop lengths**, not as an API contract. The bench protocol mischaracterized it as configuration.
+
+**Why discovered:** W5 stage-gate run (2026-05-21, n=10, real Anthropic API, NOT counted toward registered results) observed LG terminating at iter 2 with state_history `['FAST_CONVERGE', 'DIVERGING']`. Confirmed via library inspection that this is the documented v0.2.0 behavior, not a runner bug.
+
+**Corrected text:** see updated §"Baselines" LG line in current file.
+
+**Impact on predictions:** none. The rationale columns in §"Predicted magnitudes" still contain pre-lock reasoning that referenced the mythical parameter (e.g. H-COST DIVERGING row: "LoopGain stops at `recommended_min_iterations=6` to 8 once classifier fires"). Those rationale cells reflect Dave's reasoning at lock time and are preserved as a historical record. **The predicted magnitude floors themselves (≥30%, ≥70%, ≥60%, ≥75%, ≥80%, etc.) are unchanged and locked.** If the actual data exceeds floors by more than expected — because LG stops earlier than the rationale assumed — that's not a methodology change; it's an outcome that beat the prediction.
+
+**Impact on kill criteria:** none.
+
+**Follow-up (non-blocking):** open a verification issue against `loopgain-core` asking whether the v0.2 classifier's DIVERGING emission at n=2 matches the documented decision rule in `PROTOCOL_v2_classifier.md` (which requires `slope_p < P_SIG` with `slope_p` falling back to 1.0 at n=2). If there's a deviation from documented spec, it's a library issue independent of this bench. The bench reports what the shipped library does; library spec/implementation alignment is `loopgain-core` work, post-bench.
+
+### (Subsequent amendments below — none yet)
