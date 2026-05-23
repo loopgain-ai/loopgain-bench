@@ -227,20 +227,48 @@ def run_cell(workload: Workload, n: int, tag: str = "untagged", *, trials_parall
 
     write_lock = threading.Lock()
     completed = {"n": 0}
+    abort = {"flag": False}
+    landed_trials: list[dict] = []  # for the early tripwire
+    TRIPWIRE_AFTER = 5  # check after this many trials land
 
     def _process_one(seed: int) -> None:
+        if abort["flag"]:
+            return  # tripwire fired; stop accepting work
         try:
             trial_result = run_trial(workload, seed)
             with write_lock:
+                if abort["flag"]:
+                    return
                 with out_path.open("a") as f:
                     f.write(json.dumps(trial_result) + "\n")
                 completed["n"] += 1
+                landed_trials.append(trial_result)
                 print(
                     f"  [{completed['n']}/{n}] seed={seed} "
                     f"LG iters={trial_result['conditions']['LG']['iters']:>2} "
                     f"$LG={trial_result['cost_usd']['LG']:.4f}  "
                     f"$B20={trial_result['cost_usd']['B20']:.4f}"
                 )
+                # Early-corruption tripwire: if the first 5 trials are all
+                # zero-token AND all iters failed, abort the cell loudly.
+                # This catches harness-level bugs (thread-safety issues, broken
+                # adapter wrappers) that would otherwise silently corrupt
+                # all 200 trials.
+                if len(landed_trials) == TRIPWIRE_AFTER and not abort["flag"]:
+                    all_zero = all(
+                        t["conditions"]["LG"]["input_tokens"] == 0
+                        and t["conditions"]["B20"]["input_tokens"] == 0
+                        for t in landed_trials
+                    )
+                    if all_zero:
+                        abort["flag"] = True
+                        sys.stderr.write(
+                            f"\n!! TRIPWIRE FIRED: {workload.id} ({tag}) — "
+                            f"first {TRIPWIRE_AFTER} trials all have 0 input/output tokens. "
+                            f"This indicates a harness-level bug (e.g. thread-safety in the "
+                            f"adapter, broken framework_invoke, or per-iteration exception "
+                            f"swallowing all LLM calls). Stopping cell.\n"
+                        )
         except Exception as exc:  # noqa: BLE001 — log + continue per lockdown #5
             err_record = {
                 "_trial_error": True,
@@ -256,13 +284,17 @@ def run_cell(workload: Workload, n: int, tag: str = "untagged", *, trials_parall
 
     if trials_parallel <= 1:
         for seed in range(n):
+            if abort["flag"]:
+                break
             _process_one(seed)
     else:
         with concurrent.futures.ThreadPoolExecutor(max_workers=trials_parallel) as ex:
-            # Submit and exhaust — ex.__exit__ waits for all to complete
             list(ex.map(_process_one, range(n)))
 
-    print(f"== done. raw → {out_path}")
+    if abort["flag"]:
+        print(f"== ABORTED ({completed['n']} trials landed; tripwire fired). raw → {out_path}")
+    else:
+        print(f"== done. raw → {out_path}")
     return out_path
 
 

@@ -33,14 +33,50 @@ def _extract_code(text: str) -> str:
     return (text or "").strip()
 
 
+def _with_timeout(fn, timeout_s: float):
+    """Run fn() in a daemon thread; return (result, timed_out, exception).
+
+    A daemon thread is used so that a pathological-LLM-code infinite loop
+    doesn't prevent process exit. concurrent.futures.ThreadPoolExecutor
+    uses non-daemon workers (so its __exit__ blocks forever on a hung
+    task) — see LESSONS.md.
+    """
+    import threading
+
+    result: list = [None]
+    error: list = [None]
+
+    def _wrap():
+        try:
+            result[0] = fn()
+        except Exception as e:  # noqa: BLE001
+            error[0] = e
+
+    t = threading.Thread(target=_wrap, daemon=True)
+    t.start()
+    t.join(timeout=timeout_s)
+    if t.is_alive():
+        # The thread is still running its (likely infinite) computation.
+        # We leak the daemon thread; it'll die when the process exits.
+        return None, True, None
+    return result[0], False, error[0]
+
+
 def _run_tests(code: str, entry_point: str, tests: list[str]) -> tuple[int, int, list[str]]:
     """Exec the candidate code in a sandbox dict, then evaluate each assertion.
 
-    Budget: 10s total wall-clock per call (covers exec + all assertions).
-    If exec exceeds 3s on its own, the whole call fails. Per-assertion
-    timeout is min(1s, remaining_budget). Once budget exhausted, remaining
-    assertions are counted as failing (without running) so the harness
-    doesn't burn unbounded time on pathological LLM code.
+    Budget: 3s for exec, 1s per assertion, 7s overall for all assertions
+    combined. Once any budget is exhausted, remaining assertions are
+    counted as failing (without running) so pathological LLM code can't
+    burn unbounded time.
+
+    Implementation: thread-safe via daemon threads. Signals can only be
+    set from the main thread; the bench runner uses condition-level
+    threading inside run_trial, so SIGALRM-based timeouts would raise
+    ValueError on non-main threads. concurrent.futures.ThreadPoolExecutor
+    uses non-daemon workers so its context-manager exit blocks on hung
+    tasks. The daemon-thread + join(timeout) pattern below leaks the
+    thread on timeout but allows process exit (documented in LESSONS.md).
 
     Returns (n_passing, n_total, failed_messages). Compile + runtime errors
     on the code itself count as ALL tests failing.
@@ -50,62 +86,52 @@ def _run_tests(code: str, entry_point: str, tests: list[str]) -> tuple[int, int,
     write filesystem-destructive code for these algorithmic toys. Documented
     as a limitation in the writeup.
     """
-    import signal as _signal
     import time as _time
 
-    class _Timeout(Exception):
-        pass
-
-    def _alarm(_signum, _frame):
-        raise _Timeout("budget exceeded")
-
     sandbox: dict = {}
-    prev_handler = _signal.signal(_signal.SIGALRM, _alarm)
-    deadline = _time.time() + 10.0  # total budget for this call
-    try:
-        _signal.alarm(3)
-        try:
-            exec(code, sandbox)
-        except _Timeout:
-            return 0, len(tests), ["<exec timeout>"] * len(tests)
-        except Exception as exc:
-            return 0, len(tests), [f"<compile/exec error: {exc!r}>"] * len(tests)
-        finally:
-            _signal.alarm(0)
 
-        if entry_point and entry_point not in sandbox:
-            return 0, len(tests), [f"<missing entry point {entry_point!r}>"] * len(tests)
+    def _do_exec() -> dict:
+        local_sb: dict = {}
+        exec(code, local_sb)
+        return local_sb
 
-        failed: list[str] = []
-        passing = 0
-        for assertion in tests:
-            remaining = deadline - _time.time()
-            if remaining <= 0:
-                # Out of total budget — count remaining as failed without running
-                failed.append(f"{assertion}  -> <budget exhausted>")
-                continue
-            # Per-assertion timeout: 1s or remaining budget, whichever is less
-            budget = max(1, min(1, int(remaining + 0.5)))
-            try:
-                _signal.alarm(budget)
-                ok = bool(eval(assertion, sandbox))
-            except _Timeout:
-                ok = False
-                failed.append(f"{assertion}  -> <timeout>")
-                continue
-            except Exception as exc:
-                ok = False
-                failed.append(f"{assertion}  -> {exc!r}")
-                continue
-            finally:
-                _signal.alarm(0)
-            if ok:
-                passing += 1
-            else:
-                failed.append(assertion)
-        return passing, len(tests), failed
-    finally:
-        _signal.signal(_signal.SIGALRM, prev_handler)
+    # Phase 1: exec the candidate code with a 3s budget
+    exec_result, timed_out, exc = _with_timeout(_do_exec, 3.0)
+    if timed_out:
+        return 0, len(tests), ["<exec timeout>"] * len(tests)
+    if exc is not None:
+        return 0, len(tests), [f"<compile/exec error: {exc!r}>"] * len(tests)
+    sandbox = exec_result or {}
+
+    if entry_point and entry_point not in sandbox:
+        return 0, len(tests), [f"<missing entry point {entry_point!r}>"] * len(tests)
+
+    # Phase 2: evaluate each assertion with a 1s budget, 7s total
+    failed: list[str] = []
+    passing = 0
+    deadline = _time.time() + 7.0
+    for assertion in tests:
+        remaining = deadline - _time.time()
+        if remaining <= 0:
+            failed.append(f"{assertion}  -> <budget exhausted>")
+            continue
+        per_call_timeout = min(1.0, remaining)
+
+        def _do_eval(_a=assertion):
+            return bool(eval(_a, sandbox))
+
+        val, timed_out, exc = _with_timeout(_do_eval, per_call_timeout)
+        if timed_out:
+            failed.append(f"{assertion}  -> <timeout>")
+            continue
+        if exc is not None:
+            failed.append(f"{assertion}  -> {exc!r}")
+            continue
+        if val:
+            passing += 1
+        else:
+            failed.append(assertion)
+    return passing, len(tests), failed
 
 
 class CodegenWorkload(Workload):
