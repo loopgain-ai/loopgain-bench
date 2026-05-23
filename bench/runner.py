@@ -20,10 +20,12 @@ CLI:
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import importlib
 import json
 import os
 import sys
+import threading
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -138,24 +140,47 @@ def _run_loopgain(workload: Workload, trial: TrialInput, llm) -> dict:
 
 
 def run_trial(workload: Workload, seed: int) -> dict:
-    """Run all four conditions for one trial. Returns a dict ready for JSONL."""
-    trial = workload.generate_trial(seed)
-    conditions: dict[str, dict] = {}
-    cost_usd: dict[str, float] = {}
+    """Run all four conditions for one trial. Returns a dict ready for JSONL.
 
-    for condition in ("B5", "B10", "B20", "LG"):
+    The four conditions (B5/B10/B20/LG) are independent — same seed, same
+    prompt, same starting state per Methodology Lockdown #4. They are
+    executed in parallel via a 4-thread ThreadPoolExecutor; the I/O wait on
+    LLM API calls releases the GIL, so threading is the right model here.
+
+    Per Lockdown #7 ("same wall-clock environment"): running all four
+    conditions concurrently strengthens temporal locality (they share the
+    same time window exactly), it doesn't weaken it. The lockdown was
+    written against the failure mode of comparing a 2am LG run to a 2pm
+    baseline — concurrent execution makes that impossible by construction.
+
+    Per Lockdown #5: a per-condition exception is captured and re-raised as
+    a TrialError that the outer run_cell handles as a trial-level failure;
+    no condition is silently dropped.
+    """
+    trial = workload.generate_trial(seed)
+
+    def _exec_condition(condition: str) -> tuple[str, dict, float]:
         llm = client_for_model(workload.model, seed=seed)
         if condition == "LG":
             result = _run_loopgain(workload, trial, llm)
         else:
             max_iter = int(condition[1:])
             result = _run_baseline(workload, trial, max_iter, llm)
-        conditions[condition] = result
-        cost_usd[condition] = cost_for(
+        cost = cost_for(
             workload.model,
             input_tokens=result["input_tokens"],
             output_tokens=result["output_tokens"],
         )
+        return condition, result, cost
+
+    conditions: dict[str, dict] = {}
+    cost_usd: dict[str, float] = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+        futures = [ex.submit(_exec_condition, c) for c in ("B5", "B10", "B20", "LG")]
+        for fut in concurrent.futures.as_completed(futures):
+            cond, result, cost = fut.result()  # propagates any condition-level exception
+            conditions[cond] = result
+            cost_usd[cond] = cost
 
     return {
         "trial_id": f"{workload.id}-seed{seed}",
@@ -171,8 +196,15 @@ def run_trial(workload: Workload, seed: int) -> dict:
     }
 
 
-def run_cell(workload: Workload, n: int, tag: str = "untagged") -> Path:
-    """Run n trials of one cell. Writes JSONL incrementally."""
+def run_cell(workload: Workload, n: int, tag: str = "untagged", *, trials_parallel: int = 1) -> Path:
+    """Run n trials of one cell. Writes JSONL incrementally.
+
+    trials_parallel: number of trials to execute concurrently within the cell.
+    Default 1 = serial (legacy behavior). The condition-level concurrency
+    inside `run_trial` is always on; this adds an outer level of concurrency
+    over trials within the same cell. Each trial's JSONL line is written
+    under a file lock to keep the JSONL well-formed.
+    """
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     out_path = RAW_DIR / f"{workload.id}-{tag}.jsonl"
 
@@ -186,20 +218,29 @@ def run_cell(workload: Workload, n: int, tag: str = "untagged") -> Path:
         "n_planned": n,
         "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "mock_mode": os.environ.get("BENCH_MOCK") == "1",
+        "trials_parallel": trials_parallel,
     }
     with out_path.open("w") as f:
         f.write(json.dumps(header) + "\n")
 
-    print(f"== {workload.id} ({tag}) — n={n}, model={workload.model} ==")
-    for seed in range(n):
+    print(f"== {workload.id} ({tag}) — n={n}, model={workload.model}, trials_parallel={trials_parallel} ==")
+
+    write_lock = threading.Lock()
+    completed = {"n": 0}
+
+    def _process_one(seed: int) -> None:
         try:
             trial_result = run_trial(workload, seed)
-            with out_path.open("a") as f:
-                f.write(json.dumps(trial_result) + "\n")
-            print(
-                f"  [{seed+1}/{n}] LG iters={trial_result['conditions']['LG']['iters']:>2} "
-                f"$LG={trial_result['cost_usd']['LG']:.4f}  $B20={trial_result['cost_usd']['B20']:.4f}"
-            )
+            with write_lock:
+                with out_path.open("a") as f:
+                    f.write(json.dumps(trial_result) + "\n")
+                completed["n"] += 1
+                print(
+                    f"  [{completed['n']}/{n}] seed={seed} "
+                    f"LG iters={trial_result['conditions']['LG']['iters']:>2} "
+                    f"$LG={trial_result['cost_usd']['LG']:.4f}  "
+                    f"$B20={trial_result['cost_usd']['B20']:.4f}"
+                )
         except Exception as exc:  # noqa: BLE001 — log + continue per lockdown #5
             err_record = {
                 "_trial_error": True,
@@ -207,12 +248,42 @@ def run_cell(workload: Workload, n: int, tag: str = "untagged") -> Path:
                 "seed": seed,
                 "error": repr(exc),
             }
-            with out_path.open("a") as f:
-                f.write(json.dumps(err_record) + "\n")
+            with write_lock:
+                with out_path.open("a") as f:
+                    f.write(json.dumps(err_record) + "\n")
+                completed["n"] += 1
             sys.stderr.write(f"  [trial {seed} FAILED: {exc!r}]\n")
+
+    if trials_parallel <= 1:
+        for seed in range(n):
+            _process_one(seed)
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=trials_parallel) as ex:
+            # Submit and exhaust — ex.__exit__ waits for all to complete
+            list(ex.map(_process_one, range(n)))
 
     print(f"== done. raw → {out_path}")
     return out_path
+
+
+def _is_cell_complete(out_path: Path, n_required: int) -> bool:
+    """Return True iff out_path has header + n_required non-error trial records."""
+    if not out_path.exists():
+        return False
+    n_trials = 0
+    with out_path.open() as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                return False
+            if rec.get("_header") or rec.get("_trial_error"):
+                continue
+            n_trials += 1
+    return n_trials >= n_required
 
 
 def _load_workload(name: str) -> Workload:
@@ -229,28 +300,54 @@ def main() -> None:
     p.add_argument("--all-cells", action="store_true", help="Run every workload in bench.workloads")
     p.add_argument("--n", type=int, required=True, help="Trials per cell")
     p.add_argument("--tag", default="dev", help="Subdirectory tag for raw output (e.g. dry-run, registered)")
+    p.add_argument(
+        "--trials-parallel",
+        type=int,
+        default=1,
+        help="Concurrent trials per cell (default 1 = serial). Each trial's 4 conditions always run in parallel.",
+    )
+    p.add_argument(
+        "--cells-parallel",
+        type=int,
+        default=1,
+        help="Concurrent cells when --all-cells (default 1 = serial). Use 2-3 across providers to halve total wall-clock.",
+    )
+    p.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="Skip cells whose `data/raw/<id>-<tag>.jsonl` is already complete (header + n trials).",
+    )
     args = p.parse_args()
 
+    def _run_one_cell(name: str) -> None:
+        try:
+            workload = _load_workload(name)
+        except Exception as exc:  # noqa: BLE001
+            sys.stderr.write(f"skipping {name}: {exc!r}\n")
+            return
+        out_path = RAW_DIR / f"{workload.id}-{args.tag}.jsonl"
+        if args.skip_existing and _is_cell_complete(out_path, args.n):
+            print(f"== {workload.id} ({args.tag}) — already complete (n={args.n}), skipping")
+            return
+        run_cell(workload, args.n, args.tag, trials_parallel=args.trials_parallel)
+
     if args.all_cells:
-        # All workloads with a top-level WORKLOAD attribute under bench/workloads/.
         wl_dir = Path(__file__).parent / "workloads"
-        names = [
+        names = sorted(
             f.stem
             for f in wl_dir.glob("*.py")
             if f.stem not in {"__init__"}
-        ]
-        for name in sorted(names):
-            try:
-                workload = _load_workload(name)
-            except Exception as exc:  # noqa: BLE001
-                sys.stderr.write(f"skipping {name}: {exc!r}\n")
-                continue
-            run_cell(workload, args.n, args.tag)
+        )
+        if args.cells_parallel <= 1:
+            for name in names:
+                _run_one_cell(name)
+        else:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=args.cells_parallel) as ex:
+                list(ex.map(_run_one_cell, names))
     else:
         if not args.workload:
             p.error("either --workload or --all-cells required")
-        workload = _load_workload(args.workload)
-        run_cell(workload, args.n, args.tag)
+        _run_one_cell(args.workload)
 
 
 if __name__ == "__main__":
