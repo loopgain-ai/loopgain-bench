@@ -47,6 +47,10 @@ def load_trials(input_dir: Path, tag: str | None = None) -> Iterator[dict]:
     """
     pattern = f"*-{tag}.jsonl" if tag else "*.jsonl"
     for path in sorted(input_dir.glob(pattern)):
+        # Skip judge output JSONLs — those are pairwise-comparison records
+        # with a different shape, consumed separately by judge_winrate().
+        if path.name.startswith("judge-"):
+            continue
         with path.open() as f:
             for line in f:
                 line = line.strip()
@@ -174,6 +178,80 @@ def adapter_parity(trials: list[dict]) -> dict:
         task: {fw: aggregate_per_condition(ts) for fw, ts in fws.items()}
         for task, fws in by_task.items()
     }
+
+
+def hero_story(trials: list[dict], raw_dir: Path, tag: str | None = None) -> list[dict]:
+    """Mechanical hero-story selection per BENCH_PROTOCOL.md §"Hero-story selection".
+
+    For each judged trial:
+        score = ($_B20 - $_LG) × (1 - judge_loss_prob_LG_vs_B20)
+    where judge_loss_prob is 0.0 if LG won, 0.5 if tie, 1.0 if B20 won.
+    A trial with no judge record (e.g. iterative_retrieval cells where the
+    judge is skipped) defaults to judge_loss_prob=0.5 — the tie-equivalent
+    so cost-only wins still rank, but judge-confirmed wins outrank them.
+
+    Returns the top 10 trials sorted by score descending. The top trial is
+    the headline DM-payload candidate per the protocol's "mechanical, not
+    editorial" rule.
+    """
+    # Index judge results by trial_id (overall LG vs B20 verdict per trial)
+    judge_by_tid: dict[str, str] = {}
+    pattern = f"judge-*-{tag}.jsonl" if tag else "judge-*.jsonl"
+    for path in sorted(raw_dir.glob(pattern)):
+        with path.open() as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                rec = json.loads(line)
+                if rec.get("_header"):
+                    continue
+                tid = rec.get("trial_id")
+                lg_pos = rec.get("lg_position")
+                choice = rec.get("judge_choice")
+                if not tid:
+                    continue
+                if choice == "TIE":
+                    judge_by_tid[tid] = "TIE"
+                elif (choice == "A" and lg_pos == "A") or (choice == "B" and lg_pos == "B"):
+                    judge_by_tid[tid] = "LG"
+                elif choice in ("A", "B"):
+                    judge_by_tid[tid] = "B20"
+
+    scored: list[dict] = []
+    for t in trials:
+        tid = t["trial_id"]
+        cost_lg = t.get("cost_usd", {}).get("LG", 0.0)
+        cost_b20 = t.get("cost_usd", {}).get("B20", 0.0)
+        delta = cost_b20 - cost_lg
+        judge = judge_by_tid.get(tid)
+        if judge == "LG":
+            loss_prob = 0.0
+        elif judge == "B20":
+            loss_prob = 1.0
+        else:
+            loss_prob = 0.5  # tie OR unjudged (e.g. RAG)
+        score = delta * (1.0 - loss_prob)
+        lg = t.get("conditions", {}).get("LG", {})
+        scored.append({
+            "trial_id": tid,
+            "workload": t.get("workload"),
+            "framework": t.get("framework"),
+            "model": t.get("model"),
+            "seed": t.get("seed"),
+            "cost_b20_usd": cost_b20,
+            "cost_lg_usd": cost_lg,
+            "cost_delta_usd": delta,
+            "judge": judge or "unjudged",
+            "judge_loss_prob": loss_prob,
+            "score": score,
+            "lg_iters": lg.get("iters"),
+            "lg_outcome": lg.get("outcome"),
+            "lg_error_history": lg.get("error_history"),
+            "lg_best_error": lg.get("best_error"),
+        })
+    scored.sort(key=lambda r: -r["score"])
+    return scored[:10]
 
 
 def judge_winrate(raw_dir: Path, tag: str | None = None) -> dict:
@@ -362,6 +440,20 @@ def main() -> None:
 
     judge = judge_winrate(args.input, args.tag)
     (args.output / "judge.json").write_text(json.dumps(judge, indent=2))
+
+    heroes = hero_story(trials, args.input, args.tag)
+    (args.output / "hero_story.json").write_text(json.dumps(heroes, indent=2))
+    if heroes:
+        top = heroes[0]
+        print(
+            f"  → {args.output / 'hero_story.json'} "
+            f"(top: {top['trial_id']}, "
+            f"cost_delta=${top['cost_delta_usd']:.4f}, "
+            f"judge={top['judge']}, "
+            f"score={top['score']:.4f})"
+        )
+    else:
+        print(f"  → {args.output / 'hero_story.json'} (no scored trials)")
     n_files = len(judge.get("files_read") or [])
     overall = judge.get("overall")
     if overall:

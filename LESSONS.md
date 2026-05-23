@@ -3,17 +3,79 @@
 Forensic record of bugs surfaced while shipping the registered n=200 bench.
 The bench's *value proposition* is reproducibility + honesty, so the
 engineering failures that almost corrupted the data deserve to be on the
-record alongside the results.
+record alongside the results — including the wrong diagnoses, not just
+the right ones. Sanitizing the trail to "we went straight to the fix"
+would be the wrong kind of polish.
 
-## Lesson 1 — `signal.SIGALRM` is not thread-safe (and the bench is)
+## Lesson 1 — The wrong diagnosis (LangGraph cache thread-safety)
 
-### Symptom
+### Symptom round 1
 
-During registered-bench v2 and v3, every W1 (code-gen) trial wrote with
-`input_tokens == 0` and `output_tokens == 0`, and every iteration recorded
-in `failed_iters`. Worst-case error markers (`1e6`) populated
-`error_history`. LG terminated as "diverged" after 1–2 iters with garbage
-output; B20 terminated at iter 20 with the same garbage.
+Registered bench v2 (concurrent runner, first attempt) wrote 200/200
+W1-langgraph trials with `input_tokens == 0`, `output_tokens == 0`,
+every iteration in `failed_iters`, worst-case error markers populating
+`error_history`. LG terminated as "diverged" after 1–2 iters with empty
+output; B20 burned through 20 iters of the same.
+
+### Hypothesis
+
+W1 uses LangGraph via `framework_invoke._invoke_langgraph`, which cached
+the compiled `StateGraph` at module level (`_LANGGRAPH_CACHE`). With
+4-thread condition concurrency inside `run_trial`, 4 threads were
+invoking `graph.invoke()` on the same compiled graph simultaneously.
+LangGraph compiled graphs aren't documented as thread-safe — concurrent
+invokes might corrupt internal channel/checkpointer state, leading to
+the observed exception storm.
+
+### "Fix" applied
+
+Moved the LangGraph cache to `threading.local()`, so each worker thread
+gets its own compiled graph instance. Wrote a stress test: 8 concurrent
+`_invoke_langgraph` calls against real Haiku, verified 0/8 zero-token
+responses post-fix.
+
+### Why we kept this change anyway
+
+It's correct prophylactic engineering. Even if the actual v2/v3 corruption
+was elsewhere (and it was — see Lesson 2), sharing a stateful framework
+object across threads is fragile by default. The `threading.local`
+pattern is the right design.
+
+### What gave us false confidence
+
+The stress test for the LangGraph cache hypothesis hit `_invoke_langgraph`
+directly. It did NOT exercise `workload.run_iteration` end-to-end, which
+would have included the actual culprit (signal-based timeout in worker
+threads — see Lesson 2). The stress test was *correct* for the hypothesis
+it tested, but the hypothesis was wrong about which code path was broken.
+
+### Generalizable rule
+
+**When a stress test "fixes" a bug, run the same stress test through the
+full call path the production code uses, not just the suspected hot spot.**
+A test that hits the suspected adapter directly proves the adapter is
+fine — it doesn't prove the *bench* is fine, because the bench's call
+path includes everything around the adapter too.
+
+## Lesson 2 — The right diagnosis (`signal.SIGALRM` in worker threads)
+
+### Symptom round 2
+
+Registered bench v3 (with the threading.local LangGraph fix applied) ran
+W1-langgraph again. Same symptom: 200/200 trials with input_tokens=0,
+failed_iters populated. The Lesson-1 "fix" had not actually fixed
+anything.
+
+This time, we looked at stderr, not just the JSONLs. Stderr had been
+emitting for both v2 and v3:
+
+> `[iter 1 failed: ValueError('signal only works in main thread of the main interpreter')]`
+
+We had missed it because the per-iteration failures only showed up in the
+runner's stderr stream, not in the tee'd stdout that the run-progress
+output went to. The forensic moral: read stderr when the data is wrong;
+the failure message was already in front of us, we just weren't looking
+in the right pipe.
 
 ### Root cause
 
@@ -25,65 +87,44 @@ main interpreter")` when `signal.signal` is called from a non-main thread.
 The bench runner uses condition-level concurrency: every trial's four
 conditions (B5/B10/B20/LG) run in a `ThreadPoolExecutor(max_workers=4)`
 inside `run_trial`. Worker threads invoking `_run_tests` raise immediately
-on `signal.signal`. The exception is caught by `_run_baseline` /
+on `signal.signal`. The exception was caught by `_run_baseline` /
 `_run_loopgain`'s `except Exception` (per Methodology Lockdown #5: never
 silently drop), recorded as `failed_iters[i] = i`, and the iteration's
-LLM call never happens — hence `input_tokens=0`.
+LLM call never happened — hence `input_tokens=0`.
 
 This is a textbook "the standard-library timeout primitive doesn't survive
 the parallelism model your harness needs" failure.
 
-### Why dry-run didn't catch it
+### Why dry-run didn't catch this either
 
 The dry-run executed before concurrency was added to the runner (commit
 `a7754af`). Dry-run conditions ran serially in the main thread, where
 `signal.SIGALRM` works fine. The condition-concurrent path was first
-exercised by the registered bench itself — a textbook "the test
-environment didn't exercise the production path" failure mode.
+exercised by registered bench v2/v3.
 
 ### Fix
 
-Replaced SIGALRM-based timeout with thread-safe
-`concurrent.futures.ThreadPoolExecutor.submit(...).result(timeout=N)` in
-`_run_tests`. Each exec or eval call spawns a transient 1-worker pool;
-on timeout, the future is abandoned (the worker thread leaks for the
-lifetime of the bench process — acceptable for a single-shot bench run,
-since alternative subprocess-based isolation would add ~100ms per call
-× 16K calls ≈ 27min of overhead).
+Replaced SIGALRM-based timeout with a daemon `threading.Thread` +
+`join(timeout=N)` pattern in `_run_tests`. Daemon threads die with the
+process, so an LLM that writes an infinite loop leaks a thread but
+doesn't prevent process exit. Verified with a stress test: 4 concurrent
+`_run_tests('while True: pass', ...)` calls all timed out at ~3.2s
+(within the 3s exec budget + thread.join overhead). 8 concurrent valid
+fizzbuzz tests all passed.
+
+`concurrent.futures.ThreadPoolExecutor.submit(...).result(timeout=N)`
+was tried first but doesn't work — its workers are non-daemon by default,
+so the executor's `__exit__` blocks forever on a hung task. Daemon
+`threading.Thread` is the right primitive here.
 
 ### Generalizable rule
 
 **If a Python harness uses threading, no part of it can use signals.**
-SIGALRM, signal.signal, signal.alarm — any of them. Same applies to
-`os.setsigprocmask` and friends. If you need a timeout in a threaded
-harness, use `concurrent.futures` or `asyncio` exclusively.
-
-## Lesson 2 — Module-shared LangGraph compiled graph (false alarm, but)
-
-### What happened
-
-Before diagnosing Lesson 1, we hypothesized the W1-langgraph corruption
-was caused by a module-level cached LangGraph compiled graph being shared
-across the 4 condition threads. We "fixed" it by moving the graph cache
-to a `threading.local()`. The fix is structurally correct (LangGraph
-compiled graphs are not documented as thread-safe; sharing one across
-concurrent invocations could in principle corrupt internal state). But
-the actual cause of the v2/v3 corruption was Lesson 1, not the cache.
-
-### Why we kept the threading.local change
-
-It's correct prophylactic engineering. Even if the v2/v3 trials would
-have worked with the module-shared graph, a future change could mutate
-the graph's internal state in a way that breaks under concurrency. The
-`threading.local` cache compiles once per worker thread and reuses across
-iterations — zero contention, near-zero overhead.
-
-### Generalizable rule
-
-**Adapters that cache stateful framework objects (compiled graphs,
-session handles, etc.) must use `threading.local()` if the harness is
-multi-threaded.** A stateless adapter (e.g. `_invoke_langchain` creating
-a fresh `RunnableLambda` per call) needs no special handling.
+SIGALRM, signal.signal, signal.alarm — any of them. If you need a
+timeout that survives in a worker thread, use `threading.Thread(daemon=
+True)` + `join(timeout=N)` and accept the thread leak. `concurrent.
+futures.ThreadPoolExecutor` looks like it should work but its
+non-daemon workers will bite you.
 
 ## Lesson 3 — Per-cell tripwire after first N trials
 
