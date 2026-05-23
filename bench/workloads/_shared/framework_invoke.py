@@ -67,15 +67,26 @@ def invoke(framework: str, llm, prompt: str, *, max_tokens: int = 400) -> Comple
 
 # --- LangGraph ---------------------------------------------------------------
 
-_LANGGRAPH_CACHE: dict = {}
+# Thread-local cache: each worker thread compiles the graph once on first use
+# and reuses across iterations. Cross-thread sharing of a compiled LangGraph
+# is NOT safe — its internal channel/checkpointer state is mutated during
+# invoke() and concurrent invokes on the same instance corrupt the run.
+# (Observed in registered-bench-v2: 200/200 trials failed with empty
+# token counts when a module-level cached graph was invoked by 4 threads
+# concurrently per trial. Thread-local cache fixes it without rebuilding
+# per-call.)
+import threading as _threading
+_LANGGRAPH_TLS = _threading.local()
 
 
 def _invoke_langgraph(llm, prompt: str, max_tokens: int) -> Completion:
     """Single-node compiled StateGraph that wraps the LLM call.
 
-    Compiles the graph once per process (cached) for fairness across trials.
+    Graph compilation is per-thread (cached on a threading.local), not per-
+    process. That gives every worker thread its own graph instance, which
+    is what LangGraph's invoke() semantics require for thread safety.
     """
-    if "graph" not in _LANGGRAPH_CACHE:
+    if not hasattr(_LANGGRAPH_TLS, "graph"):
         from typing import TypedDict
 
         from langgraph.graph import END, START, StateGraph
@@ -95,9 +106,8 @@ def _invoke_langgraph(llm, prompt: str, max_tokens: int) -> Completion:
         g.add_node("revise", revise)
         g.add_edge(START, "revise")
         g.add_edge("revise", END)
-        _LANGGRAPH_CACHE["graph"] = g.compile()
-    graph = _LANGGRAPH_CACHE["graph"]
-    final = graph.invoke({"prompt": prompt, "llm": llm, "max_tokens": max_tokens})
+        _LANGGRAPH_TLS.graph = g.compile()
+    final = _LANGGRAPH_TLS.graph.invoke({"prompt": prompt, "llm": llm, "max_tokens": max_tokens})
     return final["completion"]
 
 
