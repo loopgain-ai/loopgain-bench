@@ -2,7 +2,7 @@
 
 Reproducible benchmark for **[LoopGain](https://loopgain.ai)** — measures cost, iterations, wall-clock, and output quality on real agentic loops, baseline-vs-LoopGain, across the major Python agent frameworks.
 
-> **Status: pre-data.** Pre-registration is locked in [`BENCH_PROTOCOL.md`](./BENCH_PROTOCOL.md) (2026-05-21). The full N≥200 run has not yet been executed. This README is updated when results land.
+> **Status: REGISTERED RESULTS LANDED (2026-05-25).** Across 2,000 real-API trials over 10 cells, LoopGain reduced median API spend by **93.5% vs `max_iter=20`**, reduced median wall-clock by **~10×**, preserved output quality on natural-distribution workloads, and *improved* output quality on engineered-failure workloads. Zero of six kill criteria fired. **Full writeup: [`RESULTS.md`](./RESULTS.md). Pre-registration: [`BENCH_PROTOCOL.md`](./BENCH_PROTOCOL.md) (locked 2026-05-21, before any cell beyond the n=10 dry-run captured real data).**
 
 ## What this measures
 
@@ -30,9 +30,9 @@ Four conditions, **paired within each trial** (same prompt, same model, same see
 - `B20` — `max_iter=20` (production-cautious; ground-truth oracle)
 - `LG` — LoopGain v0.2.0, default thresholds
 
-10 measurement cells (workload × framework). `n ≥ 200` paired trials per cell. 8,000 total loop runs.
+10 measurement cells (workload × framework). `n = 200` paired trials per cell. 8,000 total loop runs + 1,800 pairwise judge comparisons.
 
-All five [methodology-integrity safeguards](./BENCH_PROTOCOL.md#methodology-integrity-locked-in-safeguards) are committed-in-protocol: judge model ≠ loop model, position-randomized pairwise, no mid-run filtering, no optional stopping, immutable raw data.
+All ten [methodology-integrity lockdowns](./BENCH_PROTOCOL.md#methodology-integrity-locked-in-safeguards) held under inspection of the registered run: judge model ≠ loop model, position-randomized pairwise, no mid-run filtering, no optional stopping, immutable raw data — see [`RESULTS.md` §Methodology integrity](./RESULTS.md#methodology-integrity) for the audit. Seven amendments landed during the run; all scenario-design class with predicted floors and kill criteria unchanged.
 
 ## Run it yourself
 
@@ -79,14 +79,23 @@ loopgain-bench/
 │   ├── judge.py            # LLM-judge pairwise (cross-model, position-randomized)
 │   ├── llm.py              # real Anthropic / OpenAI clients + mock client
 │   └── workloads/
-│       ├── w5_adversarial.py   # Workload 5: engineered failure inputs (proof-of-concept)
-│       └── (w1-w4 to be implemented)
+│       ├── _shared/        # task corpora + framework_invoke + base classes
+│       ├── w1_codegen_{langgraph,claude_agent_sdk}.py    # MBPP+ codegen
+│       ├── w2_debate_{autogen,crewai}.py                  # rubric-graded debate
+│       ├── w3_planner_{langgraph,openai_agents}.py        # BFCL v4 tool use
+│       ├── w4_rag_langchain.py                            # BEIR/SciFact retrieval
+│       └── w5_adversarial{,_langgraph,_crewai}.py         # engineered failure
 ├── analysis/
-│   └── run.py              # produces aggregates / quality CIs / segmentation
+│   ├── run.py              # produces six analysis tables + hero-story selector
+│   └── charts.py           # generates the six RESULTS.md PNGs
 ├── data/
-│   └── raw/                # immutable raw trial outputs (one JSONL per cell)
+│   ├── raw/                # immutable raw trial outputs (registered + judge JSONLs)
+│   └── results/            # analysis outputs (json + csv + charts/*.png)
+├── RESULTS.md              # the writeup — 2,000-trial registered results
+├── LESSONS.md              # engineering forensics: bugs caught + fixes applied
 └── tests/
-    └── test_mock_harness.py
+    ├── test_mock_harness.py
+    └── test_adapter_parity.py
 ```
 
 ## What's open-source vs. what's the upsell
