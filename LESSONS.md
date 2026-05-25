@@ -249,6 +249,51 @@ enhancement for the bench harness: `make bench` should optionally
 `make publish` against a configured tenant, so future bench runs
 populate both surfaces in one go.
 
+## Lesson 6 — Upload step shipped, but a load-bearing field was nulled out
+
+### Symptom
+
+After Lesson 5's `bench/upload_to_dashboard.py` shipped all 2,000 LG
+trials to D1 cleanly, the dashboard `/benchmark` Spotlight card read
+"$0 saved · 0 iterations saved." That directly contradicts the landing
+page headline ("93.5% cost reduction vs `max_iter=20`") and RESULTS.md
+— the most jarring credibility hit on the prospect journey.
+
+### Cause
+
+The uploader built the v3 payload shape correctly but hardcoded
+`savings_vs_fixed_cap: None` on every event. The receiver dutifully
+wrote 2,000 rows with `savings_vs_fixed_cap IS NULL`, the
+`/v1/public/benchmark/stats` aggregator summed those nulls to 0, and
+the dashboard rendered the truthful $0. The bench JSONLs do record
+`LG.iters` per trial — the value needed to compute savings was right
+there; the uploader just didn't compute it.
+
+### Fix
+
+`savings_vs_fixed_cap = max(0, 20 - LG.iters)` per event, using the
+bench's measured baseline (`max_iter=20`) rather than the library
+default (`max_iter=10`). That's a per-tenant convention — a real
+customer running with defaults still sees vs-10; the bench tenant uses
+vs-20 because it's what the bench actually measured and what the
+public claims reconcile against. Cleared D1, re-uploaded. Aggregate
+savings landed at ~37K iterations (≈ 2,000 trials × ~18 mean), which
+matches the landing-page narrative.
+
+### Why this is the same lesson as #5
+
+Lesson 5 was "the publish step was missing." Lesson 6 is "the publish
+step existed but was incomplete." Both stem from the same blind spot:
+the bench treats *data collection* as the artifact, but the public
+artifact is "data correctly visible on the dashboard." Every field the
+dashboard reads is part of the publish contract, not an optional
+extra. The fix in #5 added a publish script; the fix in #6 ensures
+that script populates every column the dashboard depends on. A
+publish-step checklist (one row per dashboard panel → what
+column/field it reads → is the uploader populating it?) would have
+caught this; filed as a v0.2 follow-up alongside the `make publish`
+target.
+
 ## What stayed clean
 
 - All 5 non-langgraph framework adapters (langchain, crewai, autogen,

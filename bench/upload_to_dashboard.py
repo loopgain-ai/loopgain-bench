@@ -140,6 +140,12 @@ def trial_to_payload(
     outcome = lg["outcome"]
     rollback_triggered = outcome in ("oscillating", "diverged")
 
+    # Bench's headline baseline was max_iter=20 (see BENCH_PROTOCOL.md
+    # §Baselines and the landing-page "93.5% cost reduction" claim).
+    # Per-tenant convention: real customers see vs the library default (10);
+    # the bench tenant uses 20 because that's what the bench measured.
+    savings_vs_fixed_cap = max(0, 20 - iters)
+
     hour_bucket = timestamp.replace(
         minute=0, second=0, microsecond=0
     ).isoformat()
@@ -169,7 +175,7 @@ def trial_to_payload(
             "outcome": outcome,
             "iterations_used": iters,
             "gain_margin": safe_float(lg.get("gain_margin")),
-            "savings_vs_fixed_cap": None,
+            "savings_vs_fixed_cap": savings_vs_fixed_cap,
             "convergence_profile_summary": profile_summary,
             "rollback_triggered": rollback_triggered,
             "first_eta_prediction": None,
