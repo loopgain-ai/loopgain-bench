@@ -15,11 +15,13 @@ Across the full registered run (10 cells × n=200 paired trials = 8,000 loop run
 | Implied savings vs B20 | — | — | — | **93.5% cost / 89.5% time** |
 
 **Quality** — three-layer story (full numbers in [`RESULTS.md` §Three findings](./RESULTS.md#three-product-axes-four-findings-to-surface-honestly)):
-- **Preserved** on natural-distribution workloads (W1–W4 judge winrate 0.50–0.62 with CI excluding null on most cells; W3 ties dominate as preservation-by-construction).
+- **Preserved** on natural-distribution workloads (W1–W2 judge winrate 0.55–0.62 with CI excluding null on most cells; W3 cells 0.497–0.517 tie-dominated, preservation-by-construction since both LG and B20 produce the same correct tool call ~90% of the time).
 - **Improved** on engineered-failure workloads (W5 winrate 0.88–0.93 across three adapters; best-so-far rollback returns the iter that worked rather than the iter that degraded).
 - **Aggregate** weighted-average pairwise preference for LG vs B20 across 1,800 judge comparisons: **0.681** — over two-thirds.
 
 **Kill criteria** — none fired. Two pre-registered floors were missed without firing kill: H-EARLYWARN median lead (2 iters observed vs ≥ 3 predicted; kill at < 1) and H-FRAMEWORK-PARITY W1 spread (5.8 pp observed vs ≤ 5 pp predicted; kill at > 15 pp). Both disclosed honestly in [`RESULTS.md` §Limitations](./RESULTS.md#limitations-to-disclose).
+
+**One trial in particular illustrates the mechanism**: on a code-gen problem (MBPP/138, Haiku 4.5 + LangGraph), `max_iter=20` *found the correct answer at iteration 8*, kept iterating, and degraded back to broken code (failing 11/11 tests) by iteration 20. LoopGain detected TARGET_MET at iteration 2 and stopped with the working code. See [`RESULTS.md` §Hero story](./RESULTS.md#hero-story) for the chart and the discussion of why the mechanical hero-pick (a different trial) is disclosed separately from this DM-screenshot illustration.
 
 ## What this measures
 
