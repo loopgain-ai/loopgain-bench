@@ -35,10 +35,10 @@ bench:
 	@echo "Full run, n=200 per cell. Estimated spend: \$$30-60."
 	@echo "BENCH_PROTOCOL.md MUST be committed REGISTERED before this runs."
 	python -m bench.runner --all-cells --n 200 --tag registered \
-		--trials-parallel 8 --cells-parallel 2 --skip-existing
+		--cells-parallel 2 --skip-existing
 
 analyze:
-	python -m analysis.run --input data/raw/ --output data/results/
+	python -m analysis.run --input data/raw/ --output data/results/ --tag registered
 
 # Run pairwise LLM judge on trial JSONLs. Cross-vendor enforced — Anthropic
 # loops are judged by OpenAI gpt-4.1-mini; OpenAI loops are judged by
