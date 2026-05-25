@@ -127,6 +127,19 @@ def trial_to_payload(
     errors = [e for e in raw_errors if math.isfinite(e)]
     ab_profile = synthesize_ab_profile(errors)
 
+    # Real measured $ saved on this trial: paired B20 cost minus LG cost.
+    # The bench has both numbers because it ran every workload under both
+    # conditions; ordinary customers don't, so this field is bench-specific
+    # and the receiver/dashboard treat it as optional. Clamp at 0 so a
+    # rounding artifact or odd outlier never produces a negative "saving".
+    cost_usd = trial.get("cost_usd") or {}
+    b20_cost = cost_usd.get("B20")
+    lg_cost = cost_usd.get("LG")
+    if isinstance(b20_cost, (int, float)) and isinstance(lg_cost, (int, float)):
+        actual_dollars_saved: float | None = max(0.0, float(b20_cost) - float(lg_cost))
+    else:
+        actual_dollars_saved = None
+
     if ab_profile:
         profile_summary = {
             "min": safe_float(min(ab_profile)),
@@ -184,6 +197,7 @@ def trial_to_payload(
         "thresholds": DEFAULT_THRESHOLDS,
         "smoothing_window": DEFAULT_SMOOTHING_WINDOW,
         "per_iteration": per_iteration,
+        "actual_dollars_saved": actual_dollars_saved,
     }
 
 
