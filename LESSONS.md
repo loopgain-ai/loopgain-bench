@@ -186,6 +186,69 @@ concurrency multiplies. The right peak number depends on the slowest
 shared resource (HTTP connection pool, provider rate limit, memory) —
 not on how many CPU cores are available.
 
+## Lesson 5 — Bench data → dashboard upload was a missed step
+
+### Symptom
+
+The public bench tenant `cust_7931de9f766452ac` was provisioned in D1 on
+2026-05-21, but when the dashboard `/benchmark` route was being built
+two weeks later it surfaced as "tenant exists, 0 rows." The 2,000
+registered bench trials lived only as local `data/raw/*-registered.jsonl`
+files. Telemetry-posting was never part of `make bench`.
+
+### Why it slipped through
+
+The bench's job is to produce a *raw dataset*. The dashboard's job is to
+*display* that dataset. Neither side owned the bridge between "the JSONL
+exists" and "the receiver has the rows." The protocol-lockdown discipline
+in `BENCH_PROTOCOL.md` pre-registered everything about how data is
+collected and analyzed — nothing about how it gets published to the
+hosted dashboard.
+
+### Fix
+
+Wrote `bench/upload_to_dashboard.py`. Reads every
+`data/raw/*-registered.jsonl`, extracts the LG-condition record from each
+trial (B5/B10/B20 baselines skipped — they aren't LoopGain runs and
+don't belong in a LoopGain dashboard), maps it to the v3 telemetry
+aggregate payload shape `loopgain.telemetry.build_payload` produces, and
+POSTs to `telemetry.loopgain.ai/v1/aggregate` against the bench tenant's
+bearer token. 2,000 LG-condition trials uploaded. The script is in the
+bench repo so anyone reproducing the bench can populate their own
+tenant.
+
+Two implementation gotchas worth recording:
+
+1. **The bench JSONLs do not record the per-iteration Aβ trajectory** —
+   only the error history and the derived gain margin. To populate the
+   dashboard's Loop Detail scrubber, the uploader synthesizes the
+   smoothed Aβ profile from the error history (Aβ_raw_i = |e_i / e_{i-1}|,
+   then the same EMA-window=3 smoothing the live library applies). This
+   matches what a live loop would have transmitted, with the caveat
+   that the smoothed values are reconstructed from the bench's recorded
+   error history rather than captured in-flight. Adequate for the
+   dashboard, but `loop_events.profile_*` summary stats for this dataset
+   should be read as derived, not directly observed.
+
+2. **The Cloudflare per-customer `AGGREGATE_RL` ceiling is 60 rpm**
+   (see `wrangler.toml`). At concurrency=8 with a 15-second cumulative
+   retry budget, the first full-run attempt left 157/2,000 trials in a
+   429-then-give-up state. Dropping concurrency to 2 and extending the
+   retry budget to ~10 minutes per failing payload (12 attempts × up to
+   60s backoff) cleared the backlog cleanly. The rate limit is correct
+   policy for a free hosted tier; the uploader just needed to respect
+   it.
+
+### Generalizable rule
+
+**Every dataset that the public is supposed to see needs an explicit
+publish step, owned by someone, run as part of the artifact-production
+pipeline.** A "shipped" bench is local JSONL + dashboard rows + the
+publish step that bridges them, not just the first two. Filed as a v0.2
+enhancement for the bench harness: `make bench` should optionally
+`make publish` against a configured tenant, so future bench runs
+populate both surfaces in one go.
+
 ## What stayed clean
 
 - All 5 non-langgraph framework adapters (langchain, crewai, autogen,
