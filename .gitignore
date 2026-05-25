@@ -14,11 +14,15 @@ build/
 !.env.example
 
 # Bench-specific
+# Dry-run, stage-gate, mock, and dev tag JSONLs stay local — they're calibration
+# artifacts, not part of the registered analysis. The registered run's raw data
+# (and judge data) IS published per Methodology Lockdown #9 and §Reproducibility.
 data/raw/*.jsonl
 data/raw/*.json
 !data/raw/.gitkeep
-data/results/*.json
-data/results/*.csv
+!data/raw/*-registered.jsonl
+!data/raw/judge-*-registered.jsonl
+# Same logic for derived results: registered-run analysis outputs are published.
 data/results/*.html
 # Corpus embedding caches — large (~160 MB for SciFact), re-derivable from corpus + provider API.
 data/cache/

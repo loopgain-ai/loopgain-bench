@@ -1,0 +1,202 @@
+[
+  {
+    "trial_id": "w1-codegen-claude-agent-sdk-claude-haiku-4-5-seed116",
+    "workload": "w1-codegen-claude-agent-sdk-claude-haiku-4-5",
+    "framework": "claude-agent-sdk",
+    "model": "claude-haiku-4-5",
+    "seed": 116,
+    "cost_b20_usd": 0.069999,
+    "cost_lg_usd": 0.004754,
+    "cost_delta_usd": 0.06524500000000001,
+    "judge": "LG",
+    "judge_loss_prob": 0.0,
+    "score": 0.06524500000000001,
+    "lg_iters": 2,
+    "lg_outcome": "oscillating",
+    "lg_error_history": [
+      11.0,
+      11.0
+    ],
+    "lg_best_error": 11.0
+  },
+  {
+    "trial_id": "w1-codegen-langgraph-claude-haiku-4-5-seed116",
+    "workload": "w1-codegen-langgraph-claude-haiku-4-5",
+    "framework": "langgraph",
+    "model": "claude-haiku-4-5",
+    "seed": 116,
+    "cost_b20_usd": 0.066956,
+    "cost_lg_usd": 0.004549,
+    "cost_delta_usd": 0.062407000000000004,
+    "judge": "LG",
+    "judge_loss_prob": 0.0,
+    "score": 0.062407000000000004,
+    "lg_iters": 2,
+    "lg_outcome": "oscillating",
+    "lg_error_history": [
+      11.0,
+      11.0
+    ],
+    "lg_best_error": 11.0
+  },
+  {
+    "trial_id": "w1-codegen-langgraph-claude-haiku-4-5-seed135",
+    "workload": "w1-codegen-langgraph-claude-haiku-4-5",
+    "framework": "langgraph",
+    "model": "claude-haiku-4-5",
+    "seed": 135,
+    "cost_b20_usd": 0.059997,
+    "cost_lg_usd": 0.004846,
+    "cost_delta_usd": 0.055151000000000006,
+    "judge": "LG",
+    "judge_loss_prob": 0.0,
+    "score": 0.055151000000000006,
+    "lg_iters": 2,
+    "lg_outcome": "diverged",
+    "lg_error_history": [
+      5.0,
+      12.0
+    ],
+    "lg_best_error": 5.0
+  },
+  {
+    "trial_id": "w1-codegen-claude-agent-sdk-claude-haiku-4-5-seed34",
+    "workload": "w1-codegen-claude-agent-sdk-claude-haiku-4-5",
+    "framework": "claude-agent-sdk",
+    "model": "claude-haiku-4-5",
+    "seed": 34,
+    "cost_b20_usd": 0.058918,
+    "cost_lg_usd": 0.005141,
+    "cost_delta_usd": 0.053777,
+    "judge": "LG",
+    "judge_loss_prob": 0.0,
+    "score": 0.053777,
+    "lg_iters": 2,
+    "lg_outcome": "diverged",
+    "lg_error_history": [
+      4.0,
+      11.0
+    ],
+    "lg_best_error": 4.0
+  },
+  {
+    "trial_id": "w1-codegen-claude-agent-sdk-claude-haiku-4-5-seed113",
+    "workload": "w1-codegen-claude-agent-sdk-claude-haiku-4-5",
+    "framework": "claude-agent-sdk",
+    "model": "claude-haiku-4-5",
+    "seed": 113,
+    "cost_b20_usd": 0.057993,
+    "cost_lg_usd": 0.004849,
+    "cost_delta_usd": 0.053144000000000004,
+    "judge": "LG",
+    "judge_loss_prob": 0.0,
+    "score": 0.053144000000000004,
+    "lg_iters": 2,
+    "lg_outcome": "oscillating",
+    "lg_error_history": [
+      11.0,
+      11.0
+    ],
+    "lg_best_error": 11.0
+  },
+  {
+    "trial_id": "w1-codegen-langgraph-claude-haiku-4-5-seed30",
+    "workload": "w1-codegen-langgraph-claude-haiku-4-5",
+    "framework": "langgraph",
+    "model": "claude-haiku-4-5",
+    "seed": 30,
+    "cost_b20_usd": 0.057474,
+    "cost_lg_usd": 0.004406,
+    "cost_delta_usd": 0.053068,
+    "judge": "LG",
+    "judge_loss_prob": 0.0,
+    "score": 0.053068,
+    "lg_iters": 2,
+    "lg_outcome": "oscillating",
+    "lg_error_history": [
+      11.0,
+      11.0
+    ],
+    "lg_best_error": 11.0
+  },
+  {
+    "trial_id": "w1-codegen-langgraph-claude-haiku-4-5-seed113",
+    "workload": "w1-codegen-langgraph-claude-haiku-4-5",
+    "framework": "langgraph",
+    "model": "claude-haiku-4-5",
+    "seed": 113,
+    "cost_b20_usd": 0.058705,
+    "cost_lg_usd": 0.005913,
+    "cost_delta_usd": 0.052792,
+    "judge": "LG",
+    "judge_loss_prob": 0.0,
+    "score": 0.052792,
+    "lg_iters": 2,
+    "lg_outcome": "oscillating",
+    "lg_error_history": [
+      11.0,
+      11.0
+    ],
+    "lg_best_error": 11.0
+  },
+  {
+    "trial_id": "w1-codegen-claude-agent-sdk-claude-haiku-4-5-seed117",
+    "workload": "w1-codegen-claude-agent-sdk-claude-haiku-4-5",
+    "framework": "claude-agent-sdk",
+    "model": "claude-haiku-4-5",
+    "seed": 117,
+    "cost_b20_usd": 0.055694,
+    "cost_lg_usd": 0.003901,
+    "cost_delta_usd": 0.051793,
+    "judge": "LG",
+    "judge_loss_prob": 0.0,
+    "score": 0.051793,
+    "lg_iters": 2,
+    "lg_outcome": "diverged",
+    "lg_error_history": [
+      5.0,
+      11.0
+    ],
+    "lg_best_error": 5.0
+  },
+  {
+    "trial_id": "w1-codegen-claude-agent-sdk-claude-haiku-4-5-seed72",
+    "workload": "w1-codegen-claude-agent-sdk-claude-haiku-4-5",
+    "framework": "claude-agent-sdk",
+    "model": "claude-haiku-4-5",
+    "seed": 72,
+    "cost_b20_usd": 0.057332,
+    "cost_lg_usd": 0.005631,
+    "cost_delta_usd": 0.051701000000000004,
+    "judge": "LG",
+    "judge_loss_prob": 0.0,
+    "score": 0.051701000000000004,
+    "lg_iters": 2,
+    "lg_outcome": "diverged",
+    "lg_error_history": [
+      4.0,
+      11.0
+    ],
+    "lg_best_error": 4.0
+  },
+  {
+    "trial_id": "w1-codegen-langgraph-claude-haiku-4-5-seed34",
+    "workload": "w1-codegen-langgraph-claude-haiku-4-5",
+    "framework": "langgraph",
+    "model": "claude-haiku-4-5",
+    "seed": 34,
+    "cost_b20_usd": 0.057119,
+    "cost_lg_usd": 0.005979,
+    "cost_delta_usd": 0.051140000000000005,
+    "judge": "LG",
+    "judge_loss_prob": 0.0,
+    "score": 0.051140000000000005,
+    "lg_iters": 2,
+    "lg_outcome": "converged",
+    "lg_error_history": [
+      4.0,
+      0.0
+    ],
+    "lg_best_error": 0.0
+  }
+]
