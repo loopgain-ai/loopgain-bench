@@ -81,22 +81,22 @@ This was flagged as a watch item at the n=10 dry-run stage-gate (then at 0.45) a
 - (b) the cross-adapter spread (W1-CASDK vs W1-LangGraph at identical task, model, n) is the cleanest direct test of H-FRAMEWORK-PARITY, and we missed the predicted floor by 0.8 pp on it;
 - (c) this is the kind of result a careful reader will spot anyway. Honest is faster than spin.
 
-What the spread does *not* indicate: a broken LangGraph adapter. The LangGraph adapter is exercised end-to-end without exception at n=200; condition-level concurrency is thread-safe (after the bug fix in [§Engineering forensics](#engineering-forensics-link)); cost savings on this cell match its sibling (94.7% vs 94.8%). What it *might* indicate: LangGraph's `StateGraph.invoke` semantics produce a subtly different per-iteration prompt context vs the Claude Agent SDK's direct request, biasing the judge slightly more often. We don't have evidence to assert this; n=200 is enough to flag the spread but not to root-cause it.
+What the spread does *not* indicate: a broken LangGraph adapter. The LangGraph adapter is exercised end-to-end without exception at n=200; condition-level concurrency is thread-safe (after the bug fix in [§Engineering forensics](#engineering-forensics)); cost savings on this cell match its sibling (94.7% vs 94.8%). What it *might* indicate: LangGraph's `StateGraph.invoke` semantics produce a subtly different per-iteration prompt context vs the Claude Agent SDK's direct request, biasing the judge slightly more often. We don't have evidence to assert this; n=200 is enough to flag the spread but not to root-cause it.
 
 ### Finding 3 — CONVERGING and STALLING band emissions are sparse at scale
 
-LoopGain v0.2.0's decision engine emits one of five named bands (plus TARGET_MET and INIT). Across **2,000 trials and ~5,000+ iterations**, the emission counts:
+LoopGain v0.2.0's decision engine emits one of five named bands (plus TARGET_MET and INIT). Across **2,000 trials and 2,882 total band emissions** (one per LG-condition iteration), the counts:
 
 ![Band emission counts across 2,000 trials](data/results/charts/band_emissions.png)
 
-| Band | Emissions | % of total |
+| Band | Emissions | % of total emissions |
 |---|---:|---:|
-| TARGET_MET | 1,293 | 47.0% |
-| FAST_CONVERGE | 871 | 31.6% |
-| OSCILLATING | 360 | 13.1% |
-| DIVERGING | 347 | 12.6% |
-| **CONVERGING** | **10** | **0.4%** |
-| **STALLING** | **1** | **0.04%** |
+| TARGET_MET | 1,293 | 44.9% |
+| FAST_CONVERGE | 871 | 30.2% |
+| OSCILLATING | 360 | 12.5% |
+| DIVERGING | 347 | 12.0% |
+| **CONVERGING** | **10** | **0.35%** |
+| **STALLING** | **1** | **0.03%** |
 
 The CONVERGING and STALLING bands are essentially unexercised at scale in this bench. Two reasons:
 - **By model capability**: 2026-era LLMs on calibrated published benchmarks rarely produce gradual-convergence trajectories. They one-shot or they oscillate. CONVERGING (steady error decrease over many iterations) is a textbook trajectory that real loops don't generate often.
@@ -190,9 +190,10 @@ For trials where B20's final error exceeds 2× initial error (i.e. catastrophic 
 
 | Statistic | Value |
 |---|---:|
-| Catastrophe trials (n) | 352 |
-| Median lead time | **2 iterations** |
-| Mean lead time | 3.6 iterations |
+| B20 catastrophe trials (E_final/E_initial > 2.0) | 353 |
+| Of those, LG emitted warning band at-or-before catastrophe iter | **352** |
+| Lead time, median (over n=352 with computable lead) | **2 iterations** |
+| Lead time, mean | 3.6 iterations |
 
 **Honest disclosure**: the protocol predicted **median lead time ≥ 3 iterations**. **Observed: 2 iterations. Predicted floor missed by 1 iter.**
 
