@@ -19,7 +19,7 @@ LoopGain v0.2.0 replaces the universal `max_iterations=N` cap in iterative LLM l
 |---|---:|---:|---:|---:|
 | Total API spend across all 10 cells × n=200 | $7.00 | $13.97 | **$27.61** | **$1.80** |
 | Median wall-clock per trial | 26.2s | 49.1s | **93.0s** | **9.8s** |
-| Implied savings vs B20 | — | — | — | **93.5% cost / 89% time** |
+| Implied savings vs B20 | — | — | — | **93.5% cost / 89.5% time** |
 
 ![Total API spend by condition](data/results/charts/cost_by_condition.png)
 
@@ -127,7 +127,7 @@ The canonical illustration is the seed-34 hero-story trial (see [§Hero story](#
 
 The W5 cells show this dynamic at scale: 600 trials (3 adapters × 200) where LG's best-so-far output is genuinely better than B20's terminal output, not just cheaper.
 
-**Aggregate quality signal across all 1,800 judged comparisons**: weighted-average pairwise preference for LG vs B20 = **0.681**. Two-thirds of all judge calls preferred LG over B20. That's the headline quality number — well above the null, well above any reasonable definition of "preservation."
+**Aggregate quality signal across all 1,800 judged comparisons**: weighted-average pairwise preference for LG vs B20 = **0.681**. Over two-thirds of all judge calls preferred LG over B20. That's the headline quality number — well above the null, well above any reasonable definition of "preservation."
 
 **The honest unified claim**: *"LoopGain preserves quality on natural-distribution workloads where the model usually one-shots (winrate 0.50–0.62 on W1–W4 cells with clear signal; W3 ties dominate at 0.49–0.52 because both LG and B20 produce identical correct tool calls). LoopGain meaningfully improves quality on workloads where iteration past success can degrade outputs (W5 winrate 0.88–0.93). The mechanism is best-so-far rollback, which returns the iter that worked rather than the iter that degraded."*
 
@@ -342,7 +342,7 @@ The bench also went through a corpus calibration arc: per-cell density-check sta
 - **Raw data**: `data/raw/*-registered.jsonl` (10 cell JSONLs) + `data/raw/judge-*-registered.jsonl` (9 judge JSONLs; W4 RAG skipped — programmatic eval)
 - **Analysis outputs**: `data/results/*.{json,csv}` + `data/results/charts/*.png`
 - **Reproduce**: `make install-dev && make bench && make judge && make analyze`
-  - **API spend**: ~$45 (provider rates frozen in `prices.json` as of 2026-05-21; numbers will scale with current provider rates).
+  - **API spend**: ~$52 for the full bench + judge run (B5/B10/B20/LG conditions sum to $50.39 across 2,000 trials; the 1,800 judge pairwise comparisons add another ~$1–2). Provider rates frozen in `prices.json` as of 2026-05-21; numbers will scale with current provider rates.
   - **Wall-clock**: ~50 hours of *total runtime* across the development arc — including multiple restarts caused by harness-level bugs documented in [`LESSONS.md`](./LESSONS.md). A clean re-run on the final code reproduces in ~4–8 hours on a single Mac with the default `--cells-parallel 2` config.
 
 The numbers above will reproduce within run-to-run LLM noise (judge winrates are noisy at ±5 pp; cost numbers are stable to ~1 pp). The methodology — same prompts, same seeds, same paired conditions, same cross-vendor judge — reproduces exactly.
