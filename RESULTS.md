@@ -25,6 +25,8 @@ LoopGain v0.2.0 replaces the universal `max_iterations=N` cap in iterative LLM l
 
 The headline isn't subtle. It also isn't the whole story — three findings below qualify it.
 
+**See the bench data live in the dashboard →** [dashboard.loopgain.ai/benchmark](https://dashboard.loopgain.ai/benchmark) (public read-only view of the bench tenant — same UI as the authenticated dashboard, populated with the 2,000 trials from this run).
+
 ---
 
 ## Three product axes, four findings to surface honestly

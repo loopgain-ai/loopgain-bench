@@ -6,6 +6,8 @@ Reproducible benchmark for **[LoopGain](https://loopgain.ai)** — measures cost
 
 ![Hero trial — max_iter=20 finds the right answer at iteration 8 and degrades back to broken code by iteration 20; LoopGain detects TARGET_MET at iteration 2 and stops with the working code](data/results/charts/hero_seed34.png)
 
+**See the bench data live in the dashboard →** [dashboard.loopgain.ai/benchmark](https://dashboard.loopgain.ai/benchmark)
+
 ## Headline results
 
 Across the full registered run (10 cells × n=200 paired trials = 8,000 loop runs + 1,800 pairwise judge comparisons):
