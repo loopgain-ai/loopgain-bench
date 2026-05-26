@@ -127,11 +127,14 @@ def trial_to_payload(
     errors = [e for e in raw_errors if math.isfinite(e)]
     ab_profile = synthesize_ab_profile(errors)
 
-    # Real measured $ saved on this trial: paired B20 cost minus LG cost.
-    # The bench has both numbers because it ran every workload under both
-    # conditions; ordinary customers don't, so this field is bench-specific
-    # and the receiver/dashboard treat it as optional. Clamp at 0 so a
-    # rounding artifact or odd outlier never produces a negative "saving".
+    # Real measured $ saved + $ spent on this trial. The bench has both
+    # numbers because every workload ran under paired B20 + LG conditions;
+    # ordinary customers don't, so both fields are bench-specific and the
+    # receiver/dashboard treat them as optional. actual_dollars_spent is
+    # just lg_cost — the LG-side cost of this run, surfaced directly so
+    # the dashboard can render measured spend instead of iter × $/iter
+    # extrapolation. Saved is clamped at 0 so a rounding artifact never
+    # produces a negative "saving"; spent gets the same defensive clamp.
     cost_usd = trial.get("cost_usd") or {}
     b20_cost = cost_usd.get("B20")
     lg_cost = cost_usd.get("LG")
@@ -139,6 +142,10 @@ def trial_to_payload(
         actual_dollars_saved: float | None = max(0.0, float(b20_cost) - float(lg_cost))
     else:
         actual_dollars_saved = None
+    if isinstance(lg_cost, (int, float)):
+        actual_dollars_spent: float | None = max(0.0, float(lg_cost))
+    else:
+        actual_dollars_spent = None
 
     if ab_profile:
         profile_summary = {
@@ -198,6 +205,7 @@ def trial_to_payload(
         "smoothing_window": DEFAULT_SMOOTHING_WINDOW,
         "per_iteration": per_iteration,
         "actual_dollars_saved": actual_dollars_saved,
+        "actual_dollars_spent": actual_dollars_spent,
     }
 
 
