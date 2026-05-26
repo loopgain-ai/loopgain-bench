@@ -34,6 +34,25 @@ LG_COLOR = "#E07B00"
 BASELINE_COLORS = {"B5": "#B8B8B8", "B10": "#808080", "B20": "#404040"}
 
 
+def _set_title(fig, ax, title: str, subtitle: str | None = None,
+               *, title_fs: int = 12, subtitle_fs: int = 9) -> None:
+    """Set a bold main title via fig.suptitle plus an optional italic subtitle on the axes.
+
+    Long context (n=, savings %, methodology notes) belongs in the subtitle so the
+    headline stays crisp and nothing overflows. Pair with `bbox_inches="tight"` on
+    savefig to guarantee nothing is clipped regardless of figsize.
+    """
+    fig.suptitle(title, fontsize=title_fs, fontweight="bold", y=0.99)
+    if subtitle:
+        ax.set_title(subtitle, fontsize=subtitle_fs, style="italic", color="#555", pad=8)
+
+
+def _save(path) -> None:
+    """Save with tight bbox so titles and labels never clip."""
+    plt.savefig(path, dpi=140, bbox_inches="tight")
+    plt.close()
+
+
 def load_registered_trials() -> list[dict]:
     trials: list[dict] = []
     for p in sorted(RAW.glob("*-registered.jsonl")):
@@ -106,14 +125,16 @@ def chart_1_cost_by_condition(trials: list[dict]) -> None:
         ax.text(bar.get_x() + bar.get_width() / 2, v + max(values) * 0.01,
                 f"${v:.2f}", ha="center", fontsize=11, fontweight="bold")
     ax.set_ylabel("Total API spend (USD)", fontsize=11)
-    ax.set_title(f"Total API spend across all 10 cells, n=200 each "
-                 f"(LoopGain saves {(1 - totals['LG'] / totals['B20']) * 100:.1f}% vs max_iter=20)",
-                 fontsize=11)
+    savings_pct = (1 - totals["LG"] / totals["B20"]) * 100
+    _set_title(
+        fig, ax,
+        "Total API spend across all 10 cells",
+        f"n=200 trials per cell · LoopGain saves {savings_pct:.1f}% vs max_iter=20",
+    )
     ax.grid(axis="y", alpha=0.3)
     ax.set_ylim(0, max(values) * 1.15)
     plt.tight_layout()
-    plt.savefig(OUT / "cost_by_condition.png", dpi=140)
-    plt.close()
+    _save(OUT / "cost_by_condition.png")
 
 
 def _bootstrap_ci(scores: list[float], *, n_resamples: int = 5000, seed: int = 0) -> tuple[float, float, float]:
@@ -157,12 +178,15 @@ def chart_2_winrate_with_ci(trials: list[dict], verdicts: dict[str, str]) -> Non
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=9)
     ax.set_ylim(0, 1.0)
-    ax.set_title("Per-cell judge winrate (LG vs B20) with 95% bootstrap CI, n=200", fontsize=11)
+    _set_title(
+        fig, ax,
+        "Per-cell judge winrate, LoopGain vs B20",
+        "95% bootstrap CI · n=200 trials per cell",
+    )
     ax.legend(loc="upper left", fontsize=9)
     ax.grid(axis="y", alpha=0.3)
     plt.tight_layout()
-    plt.savefig(OUT / "winrate_with_ci.png", dpi=140)
-    plt.close()
+    _save(OUT / "winrate_with_ci.png")
 
 
 def chart_3_savings_by_segment(trials: list[dict]) -> None:
@@ -201,15 +225,17 @@ def chart_3_savings_by_segment(trials: list[dict]) -> None:
     ax.set_ylabel("LoopGain median-cost savings (%)", fontsize=11)
     ax.set_xticks(x)
     ax.set_xticklabels([f"{s.upper()}" for s in segments], fontsize=11)
-    ax.set_title("LG cost savings within each LG terminal-outcome segment "
-                 "(median over trials in segment)", fontsize=11)
+    _set_title(
+        fig, ax,
+        "LoopGain cost savings by terminal-outcome segment",
+        "median over trials in each segment",
+    )
     ax.legend(loc="lower right", fontsize=10)
     ax.grid(axis="y", alpha=0.3)
     ax.set_ylim(0, 110)
     ax.axhline(0, color="black", linewidth=0.6)
     plt.tight_layout()
-    plt.savefig(OUT / "savings_by_segment.png", dpi=140)
-    plt.close()
+    _save(OUT / "savings_by_segment.png")
 
 
 def chart_4_band_emissions(trials: list[dict]) -> None:
@@ -234,14 +260,15 @@ def chart_4_band_emissions(trials: list[dict]) -> None:
         ax.text(bar.get_x() + bar.get_width() / 2, v + max(values) * 0.01,
                 f"{v}", ha="center", fontsize=10, fontweight="bold")
     ax.set_ylabel("Total band emissions across 2,000 trials", fontsize=11)
-    ax.set_title("LoopGain band emission distribution "
-                 "(CONVERGING and STALLING bands sparsely exercised in this bench)",
-                 fontsize=10.5)
+    _set_title(
+        fig, ax,
+        "LoopGain band emission distribution",
+        "CONVERGING and STALLING bands sparsely exercised in this bench",
+    )
     ax.grid(axis="y", alpha=0.3)
     plt.xticks(rotation=15, ha="right")
     plt.tight_layout()
-    plt.savefig(OUT / "band_emissions.png", dpi=140)
-    plt.close()
+    _save(OUT / "band_emissions.png")
 
 
 def chart_5_lead_time_histogram(trials: list[dict]) -> None:
@@ -271,17 +298,18 @@ def chart_5_lead_time_histogram(trials: list[dict]) -> None:
         ax.legend(loc="upper right", fontsize=10)
         ax.set_xlabel("Iterations LG warned BEFORE B20 catastrophe (E_final/E_initial > 2.0)", fontsize=10)
         ax.set_ylabel("Count of trials", fontsize=11)
-        ax.set_title(f"Early-warning lead time: LG flags STALLING/OSCILLATING/DIVERGING "
-                     f"before B20 diverges (n={len(leads)} trials)",
-                     fontsize=10.5)
+        _set_title(
+            fig, ax,
+            "Early-warning lead time",
+            f"Iterations LG flags STALLING / OSCILLATING / DIVERGING before B20 catastrophe · n={len(leads)} trials",
+        )
     else:
         ax.text(0.5, 0.5, "No catastrophe trials at this threshold", ha="center", va="center",
                 transform=ax.transAxes, fontsize=12)
         ax.set_axis_off()
     ax.grid(axis="y", alpha=0.3)
     plt.tight_layout()
-    plt.savefig(OUT / "lead_time_histogram.png", dpi=140)
-    plt.close()
+    _save(OUT / "lead_time_histogram.png")
 
 
 def chart_6_hero_seed34(trials: list[dict]) -> None:
@@ -302,17 +330,17 @@ def chart_6_hero_seed34(trials: list[dict]) -> None:
     ax.set_xlabel("Iteration", fontsize=11)
     ax.set_ylabel("Failing tests (error)", fontsize=11)
     cost_delta = hero["cost_usd"]["B20"] - hero["cost_usd"]["LG"]
-    ax.set_title(
-        f"W1·CG·LangGraph·Hk seed=34 (MBPP/138): LG found the answer at iter 2 and stopped. "
+    _set_title(
+        fig, ax,
+        "W1 · CodeGen · LangGraph · Haiku 4.5 · seed=34 (MBPP/138)",
+        f"LoopGain found the answer at iter 2 and stopped. "
         f"B20 found it at iter 8, then degraded back to broken. ${cost_delta:.4f} saved.",
-        fontsize=10.5,
     )
     ax.legend(loc="upper right", fontsize=10)
     ax.grid(alpha=0.3)
     ax.set_xticks(range(1, 21))
     plt.tight_layout()
-    plt.savefig(OUT / "hero_seed34.png", dpi=140)
-    plt.close()
+    _save(OUT / "hero_seed34.png")
 
 
 def main() -> None:
