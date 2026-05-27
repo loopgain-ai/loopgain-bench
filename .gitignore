@@ -29,3 +29,6 @@ data/cache/
 
 # Local-only working dirs
 .loopgain-bench-scratch/
+
+# planning/brainstorm session briefs — never commit
+*KICKOFF.md
