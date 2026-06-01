@@ -10,13 +10,14 @@
 - **§4 decision thresholds FROZEN**: found-it-then-broke-it ≥15% HEADLINE / 5–15% workload-dependent /
   <5% NICHE. No further movement.
 - **Scope = Stage 0 first** (forced by budget; also correct sequencing — de-risk on the cheap clean oracle).
-- **Model tiers = cross-vendor** (for external validity of a generalizing base rate): mid = **gpt-4.1-mini**;
-  frontier = **Claude Sonnet 4.x** (recommended) with a hard live spend cap at $80. Cross-vendor means
-  any A-vs-B difference is capability+vendor confounded — report as "model A vs B," not a capability slope.
-- **One knob still open**: confirm frontier = Sonnet (rec, ~$18 total) vs Opus@n=100 (~$55, save for SWE-bench round).
+- **Model tiers = cross-vendor, FINAL** (for external validity of a generalizing base rate):
+  mid = **gpt-4.1-mini**, frontier = **Claude Sonnet 4.x**, BIRD Mini-Dev **n=150**, hard live spend
+  cap **$80** (≈$18 expected). Cross-vendor means any A-vs-B difference is capability+vendor confounded
+  — report as "model A vs B," not a capability slope. (Opus reserved for the later SWE-bench round.)
 
-Remaining before this flips to REGISTERED: (a) confirm frontier model, (b) build the fixed harness,
-(c) dry-run stage-gate at n=10/cell to verify oracle + difficulty band.
+Remaining before this flips to REGISTERED: (a) build the fixed verify-revise harness (zero-spend code +
+mock-mode validation), (b) dry-run stage-gate at n=10/cell to verify oracle + difficulty band (~$1–2),
+then (c) the confirmatory n=150 run (~$18) on explicit go.
 
 **Informed by**: deep-research report "AI Agent Loops in Production and the Base Rate of
 Non-Monotonic Behavior" (2026-05-31) and the re-analysis verdict in
