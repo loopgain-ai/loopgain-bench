@@ -40,6 +40,31 @@ def _load_dotenv(path: str = ".env") -> None:
             os.environ[k] = v
 
 
+def _cost_from_trials(trials: list, model: str) -> float:
+    from .llm import PRICES
+    pin, pout = PRICES.get(model, (0.0, 0.0))
+    it = sum(t.get("input_tokens", 0) for t in trials)
+    ot = sum(t.get("output_tokens", 0) for t in trials)
+    return (it * pin + ot * pout) / 1_000_000
+
+
+def _load_checkpoint(path: Optional[str]) -> tuple[list, set]:
+    """Load already-completed trials from a JSONL checkpoint (resume support)."""
+    if not path or not os.path.exists(path):
+        return [], set()
+    trials = []
+    for line in open(path):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            t = json.loads(line)
+            trials.append(t)
+        except json.JSONDecodeError:
+            continue  # tolerate a truncated final line from a hard kill
+    return trials, {t["task_id"] for t in trials}
+
+
 def run_tier(
     tasks: list[Task],
     provider_kind: str,
@@ -47,72 +72,85 @@ def run_tier(
     max_iter: int,
     max_spend: float,
     mock_scripts: Optional[dict] = None,
+    checkpoint_path: Optional[str] = None,
 ) -> dict:
     provider = make_provider(provider_kind, model)
-    trials = []
-    per_trial_metrics = []
-    ftb_confirmed = 0
-    ftb_rejected_by_reconfirm = 0
 
-    n_task_errors = 0
+    # Resume: completed trials are streamed to checkpoint_path as JSONL; reload
+    # them and skip those task_ids so an interrupted run never re-pays for work.
+    trials, done_ids = _load_checkpoint(checkpoint_path)
+    if done_ids:
+        print(f"  [resume] {len(done_ids)} trials already in {checkpoint_path}; skipping them")
+    ckpt = open(checkpoint_path, "a") if checkpoint_path else None
+
     for task in tasks:
+        if task.task_id in done_ids:
+            continue
         if isinstance(provider, MockProvider) and mock_scripts is not None:
             provider.load_script(mock_scripts[task.task_id])
 
+        task_error = False
         try:
             tr = run_loop(task, provider, max_iter=max_iter)
         except Exception as e:  # noqa: BLE001 — one bad task must not abort the run
-            n_task_errors += 1
+            task_error = True
             from .loop import IterPoint, TrialResult
             tr = TrialResult(task_id=task.task_id, difficulty=task.difficulty)
             tr.trajectory = [IterPoint(0, "", 1, False, f"task-failed: {type(e).__name__}: {e}", "ERR")]
             tr.terminal_s = 1
-
-        # hard spend cap — check AFTER each task, abort before the next
-        spent = provider.usage.cost_usd(provider.model)
-        if spent > max_spend:
-            raise SpendCapExceeded(
-                f"spend ${spent:.2f} exceeded cap ${max_spend:.2f} after "
-                f"{len(trials)+1} tasks; aborting (no further calls)."
-            )
 
         s = tr.s_series()
         hashes = [p.result_hash for p in tr.trajectory]
         m = metrics.trial_metrics(s, hashes)
         m.task_id = task.task_id
 
-        # Strong-oracle re-confirmation of a found-it-then-broke-it event (prereg §5)
-        if m.found_then_broke:
-            best_sql = tr.trajectory[tr.best_iter].sql
-            term_sql = tr.trajectory[-1].sql
-            if oracle.reconfirm(best_sql, term_sql, task):
-                ftb_confirmed += 1
+        reconfirm_rejected = False
+        if m.found_then_broke:  # strong-oracle re-confirmation (prereg §5)
+            if oracle.reconfirm(tr.trajectory[tr.best_iter].sql, tr.trajectory[-1].sql, task):
+                pass
             else:
                 m.found_then_broke = False  # flaky/ORDER-BY false degrade — do not count
-                ftb_rejected_by_reconfirm += 1
+                reconfirm_rejected = True
 
-        per_trial_metrics.append(m)
-        trials.append(
-            dict(
-                task_id=tr.task_id, difficulty=tr.difficulty, s_series=s,
-                first_success_iter=tr.first_success_iter, terminal_s=tr.terminal_s,
-                input_tokens=tr.input_tokens, output_tokens=tr.output_tokens,
-                trajectory=[asdict(p) for p in tr.trajectory],
-                metrics=asdict(m),
-            )
+        trial = dict(
+            task_id=tr.task_id, difficulty=tr.difficulty, s_series=s,
+            first_success_iter=tr.first_success_iter, terminal_s=tr.terminal_s,
+            input_tokens=tr.input_tokens, output_tokens=tr.output_tokens,
+            trajectory=[asdict(p) for p in tr.trajectory],
+            metrics=asdict(m), ftb_reconfirm_rejected=reconfirm_rejected,
+            task_error=task_error,
         )
+        trials.append(trial)
+        if ckpt is not None:  # durable per-trial checkpoint: survives a kill
+            ckpt.write(json.dumps(trial) + "\n")
+            ckpt.flush()
+            os.fsync(ckpt.fileno())
 
+        # hard spend cap — check AFTER each task, abort before the next.
+        # Cost summed across resume (from per-trial tokens), not just this process.
+        spent = _cost_from_trials(trials, provider.model)
+        if spent > max_spend:
+            if ckpt is not None:
+                ckpt.close()
+            raise SpendCapExceeded(
+                f"spend ${spent:.2f} exceeded cap ${max_spend:.2f} after "
+                f"{len(trials)} trials; aborting (no further calls). Re-run to resume."
+            )
+
+    if ckpt is not None:
+        ckpt.close()
+
+    per_trial_metrics = [metrics.TrialMetrics(**t["metrics"]) for t in trials]
     agg = metrics.aggregate(per_trial_metrics)
     return dict(
         provider=provider_kind, model=provider.model,
-        n=len(tasks), max_iter=max_iter,
-        cost_usd=round(provider.usage.cost_usd(provider.model), 4),
-        usage=asdict(provider.usage),
+        n=len(trials), max_iter=max_iter,
+        cost_usd=round(_cost_from_trials(trials, provider.model), 4),
         aggregate=asdict(agg),
         ftb_rate=agg.ftb_rate,
-        ftb_confirmed=ftb_confirmed,
-        ftb_rejected_by_reconfirm=ftb_rejected_by_reconfirm,
-        n_task_errors=n_task_errors,
+        ftb_confirmed=sum(1 for t in trials if t["metrics"]["found_then_broke"]),
+        ftb_rejected_by_reconfirm=sum(1 for t in trials if t.get("ftb_reconfirm_rejected")),
+        n_task_errors=sum(1 for t in trials if t.get("task_error")),
         verdict=agg.verdict(),
         trials=trials,
     )
@@ -128,7 +166,9 @@ def main(argv=None):
     ap.add_argument("--max-iter", type=int, default=10)
     ap.add_argument("--max-spend", type=float, default=80.0, help="hard USD cap")
     ap.add_argument("--sample-seed", type=int, default=20260531, help="deterministic task-sampling seed")
-    ap.add_argument("--out", default=None, help="JSONL/JSON output path")
+    ap.add_argument("--out", default=None, help="final summary JSON output path")
+    ap.add_argument("--checkpoint", default=None,
+                    help="per-trial JSONL checkpoint for resume (default: <out>.partial.jsonl)")
     ap.add_argument("--i-understand-this-spends-money", action="store_true")
     args = ap.parse_args(argv)
 
@@ -152,7 +192,9 @@ def main(argv=None):
         random.Random(args.sample_seed).shuffle(tasks)
         tasks = tasks[: args.n]
 
-    result = run_tier(tasks, args.provider, args.model, args.max_iter, args.max_spend)
+    checkpoint = args.checkpoint or (args.out + ".partial.jsonl" if args.out else None)
+    result = run_tier(tasks, args.provider, args.model, args.max_iter, args.max_spend,
+                      checkpoint_path=checkpoint)
     print(f"[{result['provider']}:{result['model']}] n={result['n']} "
           f"cost=${result['cost_usd']:.4f}  ftb_rate="
           f"{(result['ftb_rate'] or 0)*100:.1f}%  verdict={result['verdict']}")

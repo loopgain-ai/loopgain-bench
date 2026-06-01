@@ -16,7 +16,7 @@ import sys
 
 from . import metrics, oracle
 from .data import Task, mock_tasks
-from .runner import SpendCapExceeded, run_tier
+from .runner import SpendCapExceeded, _load_checkpoint, run_tier
 
 CORRECT = {
     "mock-engineers": "SELECT name FROM employees WHERE dept='Engineering'",
@@ -124,6 +124,29 @@ def test_end_to_end():
     check("verdict computed", "HEADLINE" in result["verdict"])
 
 
+def test_resume():
+    print("checkpoint / resume (kill-safety):")
+    import os
+    import tempfile
+    tasks = mock_tasks()
+    ck = tempfile.mktemp(suffix=".jsonl")
+    r1 = run_tier(tasks, "mock", None, max_iter=6, max_spend=80, mock_scripts=SCRIPTS, checkpoint_path=ck)
+    n_lines = sum(1 for line in open(ck) if line.strip())
+    check("checkpoint wrote one JSONL line per trial", n_lines == 3)
+    # second run with same checkpoint: every task already done -> resume, no recompute
+    r2 = run_tier(tasks, "mock", None, max_iter=6, max_spend=80, mock_scripts=SCRIPTS, checkpoint_path=ck)
+    check("resume reproduces n", r2["n"] == r1["n"] == 3)
+    check("resume reproduces found_then_broke", r2["aggregate"]["found_then_broke"] ==
+          r1["aggregate"]["found_then_broke"] == 1)
+    # simulate a hard kill: truncate the last line mid-write, ensure tolerant reload
+    lines = open(ck).read().splitlines()
+    with open(ck, "w") as fh:
+        fh.write("\n".join(lines[:-1]) + "\n" + lines[-1][: len(lines[-1]) // 2])  # partial final line
+    trials, done = _load_checkpoint(ck)
+    check("tolerates truncated final checkpoint line", len(trials) == 2 and len(done) == 2)
+    os.remove(ck)
+
+
 def test_spend_cap():
     print("spend-cap abort path:")
     tasks = mock_tasks()
@@ -143,6 +166,7 @@ def main():
     test_metrics_units()
     test_oracle()
     test_end_to_end()
+    test_resume()
     test_spend_cap()
     print("-" * 64)
     if _failures:
