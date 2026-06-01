@@ -1,9 +1,26 @@
 # Pre-Registration (DRAFT) — Oscillation Base Rate on Realistic-Difficulty Verifier-Gated Loops
 
-**Status: DRAFT — NOT YET REGISTERED. NOT YET RUN.** This involves **new API spend** (unlike the
-zero-spend re-analysis in `STABILITY_VS_CONFIDENCE_*`). Thresholds in §4 must be **locked, and this
-file committed, before any confirmatory data is collected** — same discipline as `BENCH_PROTOCOL.md`.
-Pending: (a) David's go, (b) a budget cap, (c) a dry-run stage-gate at n=10/cell.
+**Status: DRAFT — scope narrowed to Stage 0, decisions locked 2026-05-31; NOT YET RUN.** This involves
+**new API spend** (unlike the zero-spend re-analysis in `STABILITY_VS_CONFIDENCE_*`).
+
+**Locked decisions (2026-05-31):**
+- **Budget: $100 total ceiling.** This funds **Stage 0 (BIRD-only)** richly. It does **NOT** fund
+  SWE-bench Verified — both on API cost (~$1–10/instance × 100 × 2 tiers ≫ $100) and on infra (Dockerized
+  per-repo test harness). **SWE-bench is deferred to its own budget + harness build, gated on Stage 0.**
+- **§4 decision thresholds FROZEN**: found-it-then-broke-it ≥15% HEADLINE / 5–15% workload-dependent /
+  <5% NICHE. No further movement.
+- **Scope = Stage 0 first** (forced by budget; also correct sequencing — de-risk on the cheap clean oracle).
+- **Model tiers = cross-vendor** (for external validity of a generalizing base rate): mid = **gpt-4.1-mini**;
+  frontier = **Claude Sonnet 4.x** (recommended) with a hard live spend cap at $80. Cross-vendor means
+  any A-vs-B difference is capability+vendor confounded — report as "model A vs B," not a capability slope.
+- **One knob still open**: confirm frontier = Sonnet (rec, ~$18 total) vs Opus@n=100 (~$55, save for SWE-bench round).
+
+Remaining before this flips to REGISTERED: (a) confirm frontier model, (b) build the fixed harness,
+(c) dry-run stage-gate at n=10/cell to verify oracle + difficulty band.
+
+**Informed by**: deep-research report "AI Agent Loops in Production and the Base Rate of
+Non-Monotonic Behavior" (2026-05-31) and the re-analysis verdict in
+[`STABILITY_VS_CONFIDENCE_RESULTS.md`](./STABILITY_VS_CONFIDENCE_RESULTS.md).
 
 **Informed by**: deep-research report "AI Agent Loops in Production and the Base Rate of
 Non-Monotonic Behavior" (2026-05-31) and the re-analysis verdict in
