@@ -32,3 +32,6 @@ data/cache/
 
 # planning/brainstorm session briefs — never commit
 *KICKOFF.md
+
+# BIRD Mini-Dev databases (large binaries, downloaded locally, never committed)
+data/bird_minidev/

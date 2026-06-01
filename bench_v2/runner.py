@@ -24,6 +24,22 @@ class SpendCapExceeded(RuntimeError):
     pass
 
 
+def _load_dotenv(path: str = ".env") -> None:
+    """Load provider API keys from a local .env into os.environ (no logging of
+    values). Only sets keys that are not already present in the environment.
+    Done in-process so secrets never appear in a shell command or tool log."""
+    if not os.path.exists(path):
+        return
+    for line in open(path):
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        k, v = k.strip(), v.strip().strip('"').strip("'")
+        if k in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY") and not os.environ.get(k):
+            os.environ[k] = v
+
+
 def run_tier(
     tasks: list[Task],
     provider_kind: str,
@@ -38,11 +54,19 @@ def run_tier(
     ftb_confirmed = 0
     ftb_rejected_by_reconfirm = 0
 
+    n_task_errors = 0
     for task in tasks:
         if isinstance(provider, MockProvider) and mock_scripts is not None:
             provider.load_script(mock_scripts[task.task_id])
 
-        tr = run_loop(task, provider, max_iter=max_iter)
+        try:
+            tr = run_loop(task, provider, max_iter=max_iter)
+        except Exception as e:  # noqa: BLE001 — one bad task must not abort the run
+            n_task_errors += 1
+            from .loop import IterPoint, TrialResult
+            tr = TrialResult(task_id=task.task_id, difficulty=task.difficulty)
+            tr.trajectory = [IterPoint(0, "", 1, False, f"task-failed: {type(e).__name__}: {e}", "ERR")]
+            tr.terminal_s = 1
 
         # hard spend cap — check AFTER each task, abort before the next
         spent = provider.usage.cost_usd(provider.model)
@@ -88,6 +112,7 @@ def run_tier(
         ftb_rate=agg.ftb_rate,
         ftb_confirmed=ftb_confirmed,
         ftb_rejected_by_reconfirm=ftb_rejected_by_reconfirm,
+        n_task_errors=n_task_errors,
         verdict=agg.verdict(),
         trials=trials,
     )
@@ -102,6 +127,7 @@ def main(argv=None):
     ap.add_argument("--n", type=int, default=None, help="limit tasks")
     ap.add_argument("--max-iter", type=int, default=10)
     ap.add_argument("--max-spend", type=float, default=80.0, help="hard USD cap")
+    ap.add_argument("--sample-seed", type=int, default=20260531, help="deterministic task-sampling seed")
     ap.add_argument("--out", default=None, help="JSONL/JSON output path")
     ap.add_argument("--i-understand-this-spends-money", action="store_true")
     args = ap.parse_args(argv)
@@ -110,13 +136,20 @@ def main(argv=None):
         sys.exit("REFUSING: real provider selected without "
                  "--i-understand-this-spends-money. This is a paid run.")
 
+    if args.provider != "mock":
+        _load_dotenv()  # populate OPENAI_API_KEY / ANTHROPIC_API_KEY from .env if needed
+
     if args.source == "mock":
         tasks = mock_tasks()
     else:
         if not args.bird_root:
             sys.exit("--source bird requires --bird-root (see bench_v2/README.md §Data)")
-        tasks = load_bird_minidev(args.bird_root, limit=args.n)
-    if args.n is not None:
+        tasks = load_bird_minidev(args.bird_root, limit=None)  # load all, then sample
+    if args.n is not None and args.n < len(tasks):
+        # deterministic shuffle so the n-subset spans all DBs/difficulties
+        # (BIRD's file is ordered by database; taking the first-n would be DB-skewed)
+        import random
+        random.Random(args.sample_seed).shuffle(tasks)
         tasks = tasks[: args.n]
 
     result = run_tier(tasks, args.provider, args.model, args.max_iter, args.max_spend)

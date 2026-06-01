@@ -98,7 +98,10 @@ def run_loop(
 
 
 def _build_user_prompt(task: Task, feedback_msg: Optional[str]) -> str:
-    parts = [f"Schema:\n{task.schema_ddl}", f"\nQuestion: {task.question}"]
+    parts = [f"Schema:\n{task.schema_ddl}"]
+    if task.evidence:
+        parts.append(f"\nExternal knowledge: {task.evidence}")
+    parts.append(f"\nQuestion: {task.question}")
     if feedback_msg:
         parts.append(f"\nFeedback on your previous attempt: {feedback_msg}")
     return "\n".join(parts)

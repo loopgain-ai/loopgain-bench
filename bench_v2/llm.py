@@ -11,8 +11,23 @@ applicable; update deliberately for a real run.
 from __future__ import annotations
 
 import re
+import time
 from dataclasses import dataclass, field
 from typing import Optional
+
+
+def _with_retry(fn, attempts: int = 4, base: float = 2.0):
+    """Call fn() with exponential backoff on transient API errors. Re-raises the
+    last exception if all attempts fail (the runner records the task as failed)."""
+    last = None
+    for i in range(attempts):
+        try:
+            return fn()
+        except Exception as e:  # noqa: BLE001
+            last = e
+            if i < attempts - 1:
+                time.sleep(base * (2 ** i))  # 2s, 4s, 8s
+    raise last
 
 PRICES = {
     # model: (input_per_million, output_per_million)
@@ -105,12 +120,12 @@ class OpenAIProvider(Provider):
         self._client = OpenAI()
 
     def complete(self, system: str, user: str) -> str:
-        resp = self._client.chat.completions.create(
+        resp = _with_retry(lambda: self._client.chat.completions.create(
             model=self.model,
             messages=[{"role": "system", "content": system},
                       {"role": "user", "content": user}],
             temperature=0.0,
-        )
+        ))
         u = resp.usage
         self.usage.add(getattr(u, "prompt_tokens", 0), getattr(u, "completion_tokens", 0))
         return resp.choices[0].message.content or ""
@@ -124,12 +139,12 @@ class AnthropicProvider(Provider):
         self._client = Anthropic()
 
     def complete(self, system: str, user: str) -> str:
-        resp = self._client.messages.create(
+        resp = _with_retry(lambda: self._client.messages.create(
             model=self.model,
             max_tokens=1024,
             system=system,
             messages=[{"role": "user", "content": user}],
-        )
+        ))
         u = resp.usage
         self.usage.add(getattr(u, "input_tokens", 0), getattr(u, "output_tokens", 0))
         return "".join(getattr(b, "text", "") for b in resp.content)

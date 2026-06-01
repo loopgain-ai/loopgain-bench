@@ -1,0 +1,1126 @@
+{
+  "provider": "openai",
+  "model": "gpt-4.1-mini",
+  "n": 10,
+  "max_iter": 10,
+  "cost_usd": 0.0374,
+  "usage": {
+    "input_tokens": 38016,
+    "output_tokens": 13854,
+    "calls": 100
+  },
+  "aggregate": {
+    "n": 10,
+    "n_reached_good": 6,
+    "found_then_broke": 2,
+    "overshoot": 2,
+    "oscillation": 5,
+    "divergence": 1
+  },
+  "ftb_rate": 0.3333333333333333,
+  "ftb_confirmed": 2,
+  "ftb_rejected_by_reconfirm": 0,
+  "verdict": "HEADLINE (33.3% >= 15%)",
+  "trials": [
+    {
+      "task_id": "bird-1471-debit_card_specializing",
+      "difficulty": "simple",
+      "s_series": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "first_success_iter": 0,
+      "terminal_s": 0,
+      "input_tokens": 3562,
+      "output_tokens": 567,
+      "trajectory": [
+        {
+          "iter": 0,
+          "sql": "SELECT \n    (SELECT COUNT(*) FROM customers WHERE Currency = 'EUR') * 1.0 /\n    NULLIF((SELECT COUNT(*) FROM customers WHERE Currency = 'CZK'), 0) AS EUR_to_CZK_ratio",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "0de221add51a"
+        },
+        {
+          "iter": 1,
+          "sql": "SELECT \n    (SELECT COUNT(*) FROM customers WHERE Currency = 'EUR') * 1.0 /\n    NULLIF((SELECT COUNT(*) FROM customers WHERE Currency = 'CZK'), 0) AS EUR_to_CZK_ratio",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "0de221add51a"
+        },
+        {
+          "iter": 2,
+          "sql": "SELECT \n    CAST(SUM(Currency = 'EUR') AS FLOAT) / NULLIF(SUM(Currency = 'CZK'), 0) AS EUR_to_CZK_ratio\nFROM customers",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "0de221add51a"
+        },
+        {
+          "iter": 3,
+          "sql": "SELECT \n    (COUNT(CASE WHEN Currency = 'EUR' THEN 1 END) * 1.0) / \n    NULLIF(COUNT(CASE WHEN Currency = 'CZK' THEN 1 END), 0) AS EUR_to_CZK_ratio\nFROM customers",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "0de221add51a"
+        },
+        {
+          "iter": 4,
+          "sql": "SELECT \n    (COUNT(CASE WHEN Currency = 'EUR' THEN 1 END) * 1.0) / \n    NULLIF(COUNT(CASE WHEN Currency = 'CZK' THEN 1 END), 0) AS eur_to_czk_ratio\nFROM customers",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "0de221add51a"
+        },
+        {
+          "iter": 5,
+          "sql": "SELECT \n    (COUNT(CASE WHEN Currency = 'EUR' THEN 1 END) * 1.0) / \n    NULLIF(COUNT(CASE WHEN Currency = 'CZK' THEN 1 END), 0) AS EUR_to_CZK_ratio\nFROM customers",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "0de221add51a"
+        },
+        {
+          "iter": 6,
+          "sql": "SELECT \n    (COUNT(CASE WHEN Currency = 'EUR' THEN 1 END) * 1.0) / \n    NULLIF(COUNT(CASE WHEN Currency = 'CZK' THEN 1 END), 0) AS EUR_to_CZK_ratio\nFROM customers",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "0de221add51a"
+        },
+        {
+          "iter": 7,
+          "sql": "SELECT \n    (SELECT COUNT(*) FROM customers WHERE Currency = 'EUR') * 1.0 /\n    NULLIF((SELECT COUNT(*) FROM customers WHERE Currency = 'CZK'), 0) AS EUR_to_CZK_ratio",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "0de221add51a"
+        },
+        {
+          "iter": 8,
+          "sql": "SELECT \n    (COUNT(CASE WHEN Currency = 'EUR' THEN 1 END) * 1.0) / \n    NULLIF(COUNT(CASE WHEN Currency = 'CZK' THEN 1 END), 0) AS EUR_to_CZK_ratio\nFROM customers",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "0de221add51a"
+        },
+        {
+          "iter": 9,
+          "sql": "SELECT \n    (SELECT COUNT(*) FROM customers WHERE Currency = 'EUR') * 1.0 /\n    NULLIF((SELECT COUNT(*) FROM customers WHERE Currency = 'CZK'), 0) AS EUR_to_CZK_ratio",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "0de221add51a"
+        }
+      ],
+      "metrics": {
+        "task_id": "bird-1471-debit_card_specializing",
+        "reached_good": true,
+        "found_then_broke": false,
+        "overshoot": false,
+        "oscillation": false,
+        "divergence": false
+      }
+    },
+    {
+      "task_id": "bird-1472-debit_card_specializing",
+      "difficulty": "moderate",
+      "s_series": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        1,
+        1,
+        1
+      ],
+      "first_success_iter": 6,
+      "terminal_s": 1,
+      "input_tokens": 3576,
+      "output_tokens": 705,
+      "trajectory": [
+        {
+          "iter": 0,
+          "sql": "SELECT c.CustomerID\nFROM yearmonth y\nJOIN customers c ON y.CustomerID = c.CustomerID\nWHERE substr(y.Date, 1, 4) = '2012'\n  AND c.Currency = 'LAM'\nGROUP BY c.CustomerID\nORDER BY SUM(y.Consumption) ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "97d170e1550e"
+        },
+        {
+          "iter": 1,
+          "sql": "SELECT c.CustomerID\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 4) = '2012'\n  AND c.Currency = 'LAM'\nGROUP BY c.CustomerID\nORDER BY SUM(ym.Consumption) ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "97d170e1550e"
+        },
+        {
+          "iter": 2,
+          "sql": "SELECT c.CustomerID\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 4) = '2012'\n  AND c.Currency = 'LAM'\nGROUP BY c.CustomerID\nORDER BY SUM(ym.Consumption) ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "97d170e1550e"
+        },
+        {
+          "iter": 3,
+          "sql": "SELECT y.CustomerID\nFROM yearmonth y\nJOIN customers c ON y.CustomerID = c.CustomerID\nWHERE substr(y.Date, 1, 4) = '2012'\n  AND c.Currency = 'LAM'\nGROUP BY y.CustomerID\nORDER BY SUM(y.Consumption) ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "97d170e1550e"
+        },
+        {
+          "iter": 4,
+          "sql": "SELECT y.CustomerID\nFROM yearmonth y\nJOIN customers c ON y.CustomerID = c.CustomerID\nWHERE substr(y.Date, 1, 4) = '2012'\n  AND c.Currency = 'LAM'\nGROUP BY y.CustomerID\nORDER BY SUM(y.Consumption) ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "97d170e1550e"
+        },
+        {
+          "iter": 5,
+          "sql": "SELECT c.CustomerID\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 4) = '2012'\n  AND c.Currency = 'LAM'\nGROUP BY c.CustomerID\nORDER BY SUM(ym.Consumption) ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "97d170e1550e"
+        },
+        {
+          "iter": 6,
+          "sql": "SELECT c.CustomerID\nFROM customers c\nJOIN yearmonth y ON c.CustomerID = y.CustomerID\nWHERE c.Segment = 'LAM'\n  AND substr(y.Date, 1, 4) = '2012'\nGROUP BY c.CustomerID\nORDER BY SUM(y.Consumption) ASC\nLIMIT 1",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "5a0c4ef1666b"
+        },
+        {
+          "iter": 7,
+          "sql": "SELECT ym.CustomerID, c.Segment, c.Currency, ym.Consumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 4) = '2012'\n  AND c.Currency = 'LAM'\nORDER BY ym.Consumption ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "97d170e1550e"
+        },
+        {
+          "iter": 8,
+          "sql": "SELECT c.CustomerID\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 4) = '2012'\n  AND c.Currency = 'LAM'\nGROUP BY c.CustomerID\nORDER BY SUM(ym.Consumption) ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "97d170e1550e"
+        },
+        {
+          "iter": 9,
+          "sql": "SELECT c.CustomerID\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 4) = '2012'\n  AND c.Currency = 'LAM'\nGROUP BY c.CustomerID\nORDER BY SUM(ym.Consumption) ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "97d170e1550e"
+        }
+      ],
+      "metrics": {
+        "task_id": "bird-1472-debit_card_specializing",
+        "reached_good": true,
+        "found_then_broke": true,
+        "overshoot": true,
+        "oscillation": true,
+        "divergence": true
+      }
+    },
+    {
+      "task_id": "bird-1473-debit_card_specializing",
+      "difficulty": "moderate",
+      "s_series": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "first_success_iter": 0,
+      "terminal_s": 0,
+      "input_tokens": 3702,
+      "output_tokens": 657,
+      "trajectory": [
+        {
+          "iter": 0,
+          "sql": "SELECT AVG(Consumption) / 12 AS AvgMonthlyConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 4) = '2013' AND c.Segment = 'SME'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "1be5d8a54e79"
+        },
+        {
+          "iter": 1,
+          "sql": "SELECT AVG(Consumption) / 12.0 AS AvgMonthlyConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Segment = 'SME'\n  AND substr(ym.Date, 1, 6) BETWEEN '201301' AND '201312'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "1be5d8a54e79"
+        },
+        {
+          "iter": 2,
+          "sql": "SELECT AVG(Consumption) / 12.0 AS AvgMonthlyConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 4) = '2013'\n  AND c.Segment = 'SME'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "1be5d8a54e79"
+        },
+        {
+          "iter": 3,
+          "sql": "SELECT AVG(Consumption) / 12.0 AS AvgMonthlyConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Segment = 'SME'\n  AND substr(ym.Date, 1, 6) BETWEEN '201301' AND '201312'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "1be5d8a54e79"
+        },
+        {
+          "iter": 4,
+          "sql": "SELECT AVG(Consumption) / 12.0 AS AvgMonthlyConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 4) = '2013'\n  AND c.Segment = 'SME'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "1be5d8a54e79"
+        },
+        {
+          "iter": 5,
+          "sql": "SELECT AVG(Consumption) / 12.0 AS AvgMonthlyConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Segment = 'SME'\n  AND substr(ym.Date, 1, 6) BETWEEN '201301' AND '201312'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "1be5d8a54e79"
+        },
+        {
+          "iter": 6,
+          "sql": "SELECT AVG(Consumption) / 12.0 AS AvgMonthlyConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 4) = '2013'\n  AND c.Segment = 'SME'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "1be5d8a54e79"
+        },
+        {
+          "iter": 7,
+          "sql": "SELECT AVG(Consumption) / 12.0 AS AvgMonthlyConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Segment = 'SME'\n  AND substr(ym.Date, 1, 6) BETWEEN '201301' AND '201312'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "1be5d8a54e79"
+        },
+        {
+          "iter": 8,
+          "sql": "SELECT AVG(Consumption) / 12.0 AS AvgMonthlyConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Segment = 'SME'\n  AND substr(ym.Date, 1, 6) BETWEEN '201301' AND '201312'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "1be5d8a54e79"
+        },
+        {
+          "iter": 9,
+          "sql": "SELECT AVG(Consumption) / 12.0 AS AvgMonthlyConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Segment = 'SME'\n  AND substr(ym.Date, 1, 6) BETWEEN '201301' AND '201312'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "1be5d8a54e79"
+        }
+      ],
+      "metrics": {
+        "task_id": "bird-1473-debit_card_specializing",
+        "reached_good": true,
+        "found_then_broke": false,
+        "overshoot": false,
+        "oscillation": false,
+        "divergence": false
+      }
+    },
+    {
+      "task_id": "bird-1476-debit_card_specializing",
+      "difficulty": "challenging",
+      "s_series": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "first_success_iter": 0,
+      "terminal_s": 0,
+      "input_tokens": 3832,
+      "output_tokens": 919,
+      "trajectory": [
+        {
+          "iter": 0,
+          "sql": "WITH consumption_2012 AS (\n    SELECT c.Currency, SUM(y.Consumption) AS total_consumption\n    FROM yearmonth y\n    JOIN customers c ON y.CustomerID = c.CustomerID\n    WHERE y.Date BETWEEN '201201' AND '201212'\n      AND c.Currency IN ('CZK', 'EUR')\n    GROUP BY c.Currency\n)\nSELECT\n    (SELECT total_consumption FROM consumption_2012 WHERE Currency = 'CZK') -\n    (SELECT total_consumption FROM consumption_2012 WHERE Currency = 'EUR') AS difference_in_consumption",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "524de10a0727"
+        },
+        {
+          "iter": 1,
+          "sql": "SELECT\n    SUM(CASE WHEN c.Currency = 'CZK' THEN ym.Consumption ELSE 0 END) -\n    SUM(CASE WHEN c.Currency = 'EUR' THEN ym.Consumption ELSE 0 END) AS ConsumptionDifference\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 6) BETWEEN '201201' AND '201212'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "524de10a0727"
+        },
+        {
+          "iter": 2,
+          "sql": "SELECT\n    SUM(CASE WHEN c.Currency = 'CZK' THEN ym.Consumption ELSE 0 END) -\n    SUM(CASE WHEN c.Currency = 'EUR' THEN ym.Consumption ELSE 0 END) AS ConsumptionDifference\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 6) BETWEEN '201201' AND '201212'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "524de10a0727"
+        },
+        {
+          "iter": 3,
+          "sql": "SELECT\n    SUM(CASE WHEN c.Currency = 'CZK' THEN ym.Consumption ELSE 0 END) -\n    SUM(CASE WHEN c.Currency = 'EUR' THEN ym.Consumption ELSE 0 END) AS ConsumptionDifference\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE ym.Date BETWEEN '201201' AND '201212'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "524de10a0727"
+        },
+        {
+          "iter": 4,
+          "sql": "SELECT\n    SUM(CASE WHEN c.Currency = 'CZK' THEN ym.Consumption ELSE 0 END) -\n    SUM(CASE WHEN c.Currency = 'EUR' THEN ym.Consumption ELSE 0 END) AS ConsumptionDifference\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 4) = '2012'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "524de10a0727"
+        },
+        {
+          "iter": 5,
+          "sql": "SELECT\n    SUM(CASE WHEN c.Currency = 'CZK' THEN ym.Consumption ELSE 0 END) -\n    SUM(CASE WHEN c.Currency = 'EUR' THEN ym.Consumption ELSE 0 END) AS ConsumptionDifference\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 6) BETWEEN '201201' AND '201212'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "524de10a0727"
+        },
+        {
+          "iter": 6,
+          "sql": "SELECT\n    SUM(CASE WHEN c.Currency = 'CZK' THEN ym.Consumption ELSE 0 END) -\n    SUM(CASE WHEN c.Currency = 'EUR' THEN ym.Consumption ELSE 0 END) AS ConsumptionDifference\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 6) BETWEEN '201201' AND '201212'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "524de10a0727"
+        },
+        {
+          "iter": 7,
+          "sql": "SELECT\n    SUM(CASE WHEN c.Currency = 'CZK' THEN ym.Consumption ELSE 0 END) -\n    SUM(CASE WHEN c.Currency = 'EUR' THEN ym.Consumption ELSE 0 END) AS ConsumptionDifference\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE ym.Date BETWEEN '201201' AND '201212'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "524de10a0727"
+        },
+        {
+          "iter": 8,
+          "sql": "SELECT\n    SUM(CASE WHEN c.Currency = 'CZK' THEN ym.Consumption ELSE 0 END) -\n    SUM(CASE WHEN c.Currency = 'EUR' THEN ym.Consumption ELSE 0 END) AS ConsumptionDifference\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 6) BETWEEN '201201' AND '201212'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "524de10a0727"
+        },
+        {
+          "iter": 9,
+          "sql": "SELECT\n    SUM(CASE WHEN c.Currency = 'CZK' THEN ym.Consumption ELSE 0 END) -\n    SUM(CASE WHEN c.Currency = 'EUR' THEN ym.Consumption ELSE 0 END) AS ConsumptionDifference\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE substr(ym.Date, 1, 6) BETWEEN '201201' AND '201212'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "524de10a0727"
+        }
+      ],
+      "metrics": {
+        "task_id": "bird-1476-debit_card_specializing",
+        "reached_good": true,
+        "found_then_broke": false,
+        "overshoot": false,
+        "oscillation": false,
+        "divergence": false
+      }
+    },
+    {
+      "task_id": "bird-1479-debit_card_specializing",
+      "difficulty": "moderate",
+      "s_series": [
+        1,
+        1,
+        1,
+        0,
+        1,
+        1,
+        1,
+        1,
+        0,
+        1
+      ],
+      "first_success_iter": 3,
+      "terminal_s": 1,
+      "input_tokens": 3393,
+      "output_tokens": 696,
+      "trajectory": [
+        {
+          "iter": 0,
+          "sql": "SELECT substr(t.Date, 1, 4) AS Year, SUM(t.Amount * t.Price) AS TotalConsumption\nFROM transactions_1k t\nJOIN customers c ON t.CustomerID = c.CustomerID\nWHERE c.Currency = 'CZK'\nGROUP BY Year\nORDER BY TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "935c61c0c965"
+        },
+        {
+          "iter": 1,
+          "sql": "SELECT substr(y.Date, 1, 4) AS Year, SUM(y.Consumption) AS TotalConsumption\nFROM yearmonth y\nJOIN customers c ON y.CustomerID = c.CustomerID\nWHERE c.Currency = 'CZK'\nGROUP BY Year\nORDER BY TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "dd793a963736"
+        },
+        {
+          "iter": 2,
+          "sql": "SELECT substr(ym.Date, 1, 4) AS Year, SUM(ym.Consumption) AS TotalConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Currency = 'CZK'\nGROUP BY Year\nORDER BY TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "dd793a963736"
+        },
+        {
+          "iter": 3,
+          "sql": "SELECT substr(ym.Date, 1, 4) AS Year\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Currency = 'CZK'\nGROUP BY Year\nORDER BY SUM(ym.Consumption) DESC\nLIMIT 1",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "20e1fccf7a91"
+        },
+        {
+          "iter": 4,
+          "sql": "SELECT \n    SUBSTR(ym.Date, 1, 4) AS Year,\n    SUM(ym.Consumption) AS TotalConsumption\nFROM \n    yearmonth ym\nJOIN \n    customers c ON ym.CustomerID = c.CustomerID\nWHERE \n    c.Currency = 'CZK'\nGROUP BY \n    Year\nORDER BY \n    TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "dd793a963736"
+        },
+        {
+          "iter": 5,
+          "sql": "SELECT substr(ym.Date, 1, 4) AS Year, SUM(ym.Consumption) AS TotalConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Currency = 'CZK'\nGROUP BY Year\nORDER BY TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "dd793a963736"
+        },
+        {
+          "iter": 6,
+          "sql": "SELECT substr(ym.Date, 1, 4) AS Year, SUM(ym.Consumption) AS TotalConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Currency = 'CZK'\nGROUP BY Year\nORDER BY TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "dd793a963736"
+        },
+        {
+          "iter": 7,
+          "sql": "SELECT substr(ym.Date, 1, 4) AS Year, SUM(ym.Consumption) AS TotalConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Currency = 'CZK'\nGROUP BY Year\nORDER BY TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "dd793a963736"
+        },
+        {
+          "iter": 8,
+          "sql": "SELECT substr(ym.Date, 1, 4) AS Year\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Currency = 'CZK'\nGROUP BY Year\nORDER BY SUM(ym.Consumption) DESC\nLIMIT 1",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "20e1fccf7a91"
+        },
+        {
+          "iter": 9,
+          "sql": "SELECT \n    SUBSTR(ym.Date, 1, 4) AS Year,\n    SUM(ym.Consumption) AS TotalConsumption\nFROM \n    yearmonth ym\nJOIN \n    customers c ON ym.CustomerID = c.CustomerID\nWHERE \n    c.Currency = 'CZK'\nGROUP BY \n    Year\nORDER BY \n    TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "dd793a963736"
+        }
+      ],
+      "metrics": {
+        "task_id": "bird-1479-debit_card_specializing",
+        "reached_good": true,
+        "found_then_broke": true,
+        "overshoot": true,
+        "oscillation": true,
+        "divergence": false
+      }
+    },
+    {
+      "task_id": "bird-1480-debit_card_specializing",
+      "difficulty": "moderate",
+      "s_series": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "first_success_iter": null,
+      "terminal_s": 1,
+      "input_tokens": 3759,
+      "output_tokens": 891,
+      "trajectory": [
+        {
+          "iter": 0,
+          "sql": "SELECT \n    substr(Date, 1, 6) AS YearMonth,\n    SUM(Consumption) AS TotalConsumption\nFROM \n    yearmonth ym\nJOIN \n    customers c ON ym.CustomerID = c.CustomerID\nWHERE \n    c.Segment = 'SME'\n    AND substr(Date, 1, 4) = '2013'\nGROUP BY \n    YearMonth\nORDER BY \n    TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "8ecb0155f2c6"
+        },
+        {
+          "iter": 1,
+          "sql": "SELECT \n    substr(ym.Date, 5, 2) AS Month,\n    SUM(ym.Consumption) AS TotalConsumption\nFROM \n    yearmonth ym\nJOIN \n    customers c ON ym.CustomerID = c.CustomerID\nWHERE \n    c.Segment = 'SME'\n    AND substr(ym.Date, 1, 4) = '2013'\nGROUP BY \n    Month\nORDER BY \n    TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "60a3602e05e8"
+        },
+        {
+          "iter": 2,
+          "sql": "SELECT \n    substr(ym.Date, 1, 6) AS YearMonth,\n    SUM(ym.Consumption) AS TotalConsumption\nFROM \n    yearmonth ym\nJOIN \n    customers c ON ym.CustomerID = c.CustomerID\nWHERE \n    c.Segment = 'SME'\n    AND ym.Date BETWEEN '201301' AND '201312'\nGROUP BY \n    YearMonth\nORDER BY \n    TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "8ecb0155f2c6"
+        },
+        {
+          "iter": 3,
+          "sql": "SELECT \n    substr(ym.Date, 1, 6) AS YearMonth,\n    SUM(ym.Consumption) AS TotalConsumption\nFROM \n    yearmonth ym\nJOIN \n    customers c ON ym.CustomerID = c.CustomerID\nWHERE \n    c.Segment = 'SME'\n    AND ym.Date BETWEEN '201301' AND '201312'\nGROUP BY \n    YearMonth\nORDER BY \n    TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "8ecb0155f2c6"
+        },
+        {
+          "iter": 4,
+          "sql": "SELECT substr(ym.Date, 1, 6) AS YearMonth, SUM(ym.Consumption) AS TotalConsumption\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Segment = 'SME'\n  AND substr(ym.Date, 1, 4) = '2013'\nGROUP BY YearMonth\nORDER BY TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "8ecb0155f2c6"
+        },
+        {
+          "iter": 5,
+          "sql": "SELECT \n    substr(ym.Date, 1, 6) AS YearMonth,\n    SUM(ym.Consumption) AS TotalConsumption\nFROM \n    yearmonth ym\nJOIN \n    customers c ON ym.CustomerID = c.CustomerID\nWHERE \n    c.Segment = 'SME'\n    AND ym.Date BETWEEN '201301' AND '201312'\nGROUP BY \n    YearMonth\nORDER BY \n    TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "8ecb0155f2c6"
+        },
+        {
+          "iter": 6,
+          "sql": "SELECT Date AS PeakMonth\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Segment = 'SME'\n  AND Date BETWEEN '201301' AND '201312'\nORDER BY Consumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "ca83ce7e6b32"
+        },
+        {
+          "iter": 7,
+          "sql": "SELECT \n    substr(ym.Date, 1, 6) AS YearMonth,\n    SUM(ym.Consumption) AS TotalConsumption\nFROM \n    yearmonth ym\nJOIN \n    customers c ON ym.CustomerID = c.CustomerID\nWHERE \n    c.Segment = 'SME'\n    AND ym.Date BETWEEN '201301' AND '201312'\nGROUP BY \n    YearMonth\nORDER BY \n    TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "8ecb0155f2c6"
+        },
+        {
+          "iter": 8,
+          "sql": "SELECT Date AS PeakMonth\nFROM yearmonth ym\nJOIN customers c ON ym.CustomerID = c.CustomerID\nWHERE c.Segment = 'SME'\n  AND Date BETWEEN '201301' AND '201312'\nORDER BY Consumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "ca83ce7e6b32"
+        },
+        {
+          "iter": 9,
+          "sql": "SELECT \n    substr(ym.Date, 1, 6) AS YearMonth,\n    SUM(ym.Consumption) AS TotalConsumption\nFROM \n    yearmonth ym\nJOIN \n    customers c ON ym.CustomerID = c.CustomerID\nWHERE \n    c.Segment = 'SME'\n    AND ym.Date BETWEEN '201301' AND '201312'\nGROUP BY \n    YearMonth\nORDER BY \n    TotalConsumption DESC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "8ecb0155f2c6"
+        }
+      ],
+      "metrics": {
+        "task_id": "bird-1480-debit_card_specializing",
+        "reached_good": false,
+        "found_then_broke": false,
+        "overshoot": false,
+        "oscillation": true,
+        "divergence": false
+      }
+    },
+    {
+      "task_id": "bird-1481-debit_card_specializing",
+      "difficulty": "challenging",
+      "s_series": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "first_success_iter": null,
+      "terminal_s": 1,
+      "input_tokens": 4499,
+      "output_tokens": 4933,
+      "trajectory": [
+        {
+          "iter": 0,
+          "sql": "WITH\n-- Filter customers by segment and currency CZK\ncustomers_czk AS (\n    SELECT CustomerID, Segment\n    FROM customers\n    WHERE Currency = 'CZK'\n),\n-- Sum consumption per customer for 2013\nconsumption_2013 AS (\n    SELECT ym.CustomerID, SUM(ym.Consumption) AS total_consumption\n    FROM yearmonth ym\n    JOIN customers_czk c ON ym.CustomerID = c.CustomerID\n    WHERE substr(ym.Date,1,4) = '2013'\n    GROUP BY ym.CustomerID\n),\n-- Find minimum consumption per segment\nmin_consumption_per_segment AS (\n    SELECT c.Segment, MIN(co.total_consumption) AS min_consumption\n    FROM consumption_2013 co\n    JOIN customers_czk c ON co.CustomerID = c.CustomerID\n    GROUP BY c.Segment\n),\n-- Customers with minimum consumption per segment\nmin_consumers AS (\n    SELECT c.Segment, co.CustomerID, co.total_consumption\n    FROM consumption_2013 co\n    JOIN customers_czk c ON co.CustomerID = c.CustomerID\n    JOIN min_consumption_per_segment m ON c.Segment = m.Segment AND co.total_consumption = m.min_consumption\n),\n-- Calculate annual average consumption of customers with lowest consumption per segment\nannual_avg AS (\n    SELECT\n        Segment,\n        SUM(total_consumption) * 1.0 / COUNT(CustomerID) AS avg_consumption\n    FROM min_consumers\n    GROUP BY Segment\n)\nSELECT\n    (SELECT avg_consumption FROM annual_avg WHERE Segment = 'SME') - (SELECT avg_consumption FROM annual_avg WHERE Segment = 'LAM') AS SME_minus_LAM,\n    (SELECT avg_consumption FROM annual_avg WHERE Segment = 'LAM') - (SELECT avg_consumption FROM annual_avg WHERE Segment = 'KAM') AS LAM_minus_KAM,\n    (SELECT avg_consumption FROM annual_avg WHERE Segment = 'KAM') - (SELECT avg_consumption FROM annual_avg WHERE Segment = 'SME') AS KAM_minus_SME",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "471d034370aa"
+        },
+        {
+          "iter": 1,
+          "sql": "WITH\n-- Filter transactions paid in CZK in 2013 and sum consumption per customer\nCustomerConsumption AS (\n    SELECT\n        t.CustomerID,\n        SUM(t.Amount * t.Price) AS TotalConsumption\n    FROM transactions_1k t\n    JOIN customers c ON t.CustomerID = c.CustomerID\n    WHERE c.Currency = 'CZK'\n      AND substr(t.Date, 1, 4) = '2013'\n    GROUP BY t.CustomerID\n),\n-- Get the minimum consumption per segment\nMinConsumptionPerSegment AS (\n    SELECT\n        c.Segment,\n        MIN(cc.TotalConsumption) AS MinConsumption\n    FROM CustomerConsumption cc\n    JOIN customers c ON cc.CustomerID = c.CustomerID\n    GROUP BY c.Segment\n),\n-- Get customers with minimum consumption per segment\nMinCustomers AS (\n    SELECT\n        c.CustomerID,\n        c.Segment,\n        cc.TotalConsumption\n    FROM CustomerConsumption cc\n    JOIN customers c ON cc.CustomerID = c.CustomerID\n    JOIN MinConsumptionPerSegment mcs ON c.Segment = mcs.Segment AND cc.TotalConsumption = mcs.MinConsumption\n),\n-- Calculate annual average consumption of customers with minimum consumption per segment\nAnnualAvgMinConsumption AS (\n    SELECT\n        Segment,\n        AVG(TotalConsumption) AS AvgMinConsumption\n    FROM MinCustomers\n    GROUP BY Segment\n)\nSELECT\n    (SELECT AvgMinConsumption FROM AnnualAvgMinConsumption WHERE Segment = 'SME') -\n    (SELECT AvgMinConsumption FROM AnnualAvgMinConsumption WHERE Segment = 'LAM') AS SME_minus_LAM,\n    \n    (SELECT AvgMinConsumption FROM AnnualAvgMinConsumption WHERE Segment = 'LAM') -\n    (SELECT AvgMinConsumption FROM AnnualAvgMinConsumption WHERE Segment = 'KAM') AS LAM_minus_KAM,\n    \n    (SELECT AvgMinConsumption FROM AnnualAvgMinConsumption WHERE Segment = 'KAM') -\n    (SELECT AvgMinConsumption FROM AnnualAvgMinConsumption WHERE Segment = 'SME') AS KAM_minus_SME",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "4b28ab96a981"
+        },
+        {
+          "iter": 2,
+          "sql": "WITH\n-- Filter customers by segment and currency CZK\ncustomers_czk AS (\n    SELECT CustomerID, Segment\n    FROM customers\n    WHERE Currency = 'CZK'\n),\n-- Sum consumption per customer for 2013\nconsumption_2013 AS (\n    SELECT ym.CustomerID, SUM(ym.Consumption) AS total_consumption\n    FROM yearmonth ym\n    WHERE substr(ym.Date,1,4) = '2013'\n    GROUP BY ym.CustomerID\n),\n-- Join consumption with customers filtered by CZK currency\nconsumption_czk AS (\n    SELECT c.Segment, c.CustomerID, co.total_consumption\n    FROM customers_czk c\n    JOIN consumption_2013 co ON c.CustomerID = co.CustomerID\n),\n-- Find minimum consumption per segment\nmin_consumption_per_segment AS (\n    SELECT Segment, MIN(total_consumption) AS min_consumption\n    FROM consumption_czk\n    GROUP BY Segment\n),\n-- Customers with minimum consumption per segment\nmin_consumers AS (\n    SELECT c.Segment, c.CustomerID, c.total_consumption\n    FROM consumption_czk c\n    JOIN min_consumption_per_segment m\n      ON c.Segment = m.Segment AND c.total_consumption = m.min_consumption\n),\n-- Count of min consumers per segment\nmin_consumers_count AS (\n    SELECT Segment, COUNT(*) AS cnt\n    FROM min_consumers\n    GROUP BY Segment\n),\n-- Sum of min consumption per segment (should be min_consumption * count)\nsum_min_consumption_per_segment AS (\n    SELECT m.Segment, m.min_consumption * mc.cnt AS total_min_consumption, mc.cnt\n    FROM min_consumption_per_segment m\n    JOIN min_consumers_count mc ON m.Segment = mc.Segment\n),\n-- Calculate annual average consumption of customers with lowest consumption per segment\nannual_avg_per_segment AS (\n    SELECT Segment, total_min_consumption / cnt AS annual_avg\n    FROM sum_min_consumption_per_segment\n),\n-- Select annual averages for SME, LAM, KAM\navg_SME AS (SELECT annual_avg FROM annual_avg_per_segment WHERE Segment = 'SME'),\navg_LAM AS (SELECT annual_avg FROM annual_avg_per_segment WHERE Segment = 'LAM'),\navg_KAM AS (SELECT annual_avg FROM annual_avg_per_segment WHERE Segment = 'KAM')\n\nSELECT\n    (SELECT annual_avg FROM avg_SME) - (SELECT annual_avg FROM avg_LAM) AS diff_SME_LAM,\n    (SELECT annual_avg FROM avg_LAM) - (SELECT annual_avg FROM avg_KAM) AS diff_LAM_KAM,\n    (SELECT annual_avg FROM avg_KAM) - (SELECT annual_avg FROM avg_SME) AS diff_KAM_SME",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "471d034370aa"
+        },
+        {
+          "iter": 3,
+          "sql": "WITH \n-- Filter customers by segment and currency CZK\ncustomers_czk AS (\n    SELECT CustomerID, Segment\n    FROM customers\n    WHERE Currency = 'CZK'\n),\n-- Sum consumption per customer for 2013\nconsumption_2013 AS (\n    SELECT ym.CustomerID, SUM(ym.Consumption) AS total_consumption\n    FROM yearmonth ym\n    WHERE substr(ym.Date,1,4) = '2013'\n    GROUP BY ym.CustomerID\n),\n-- Join consumption with customers to get segment and filter CZK customers only\nconsumption_segment AS (\n    SELECT c.Segment, c.CustomerID, co.total_consumption\n    FROM customers_czk c\n    JOIN consumption_2013 co ON c.CustomerID = co.CustomerID\n    WHERE c.Segment IN ('SME', 'LAM', 'KAM')\n),\n-- Find minimum consumption per segment\nmin_consumption_per_segment AS (\n    SELECT Segment, MIN(total_consumption) AS min_consumption\n    FROM consumption_segment\n    GROUP BY Segment\n),\n-- Find customers with minimum consumption per segment\nmin_consumers AS (\n    SELECT cs.Segment, cs.CustomerID, cs.total_consumption\n    FROM consumption_segment cs\n    JOIN min_consumption_per_segment mcs \n      ON cs.Segment = mcs.Segment AND cs.total_consumption = mcs.min_consumption\n),\n-- Calculate annual average consumption of customers with minimum consumption per segment\nannual_avg_min_consumption AS (\n    SELECT \n        Segment,\n        SUM(total_consumption) * 1.0 / COUNT(CustomerID) AS avg_consumption\n    FROM min_consumers\n    GROUP BY Segment\n)\nSELECT\n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'SME') - \n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'LAM') AS diff_SME_LAM,\n    \n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'LAM') - \n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'KAM') AS diff_LAM_KAM,\n    \n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'KAM') - \n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'SME') AS diff_KAM_SME",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "471d034370aa"
+        },
+        {
+          "iter": 4,
+          "sql": "WITH \n-- Filter transactions in 2013 paid in CZK and join with customers to get segments\ntrans_2013_czk AS (\n    SELECT \n        t.CustomerID,\n        c.Segment,\n        t.Amount * t.Price AS TotalPrice\n    FROM transactions_1k t\n    JOIN customers c ON t.CustomerID = c.CustomerID\n    WHERE t.Date BETWEEN '20130101' AND '20131231'\n      AND c.Currency = 'CZK'\n),\n-- Sum total consumption per customer in 2013 paid in CZK\ncustomer_consumption AS (\n    SELECT \n        CustomerID,\n        Segment,\n        SUM(TotalPrice) AS TotalConsumption\n    FROM trans_2013_czk\n    GROUP BY CustomerID, Segment\n),\n-- Find minimum consumption per segment\nmin_consumption_per_segment AS (\n    SELECT \n        Segment,\n        MIN(TotalConsumption) AS MinConsumption\n    FROM customer_consumption\n    GROUP BY Segment\n),\n-- Customers with minimum consumption per segment\nmin_consumers AS (\n    SELECT \n        cc.Segment,\n        cc.CustomerID,\n        cc.TotalConsumption\n    FROM customer_consumption cc\n    JOIN min_consumption_per_segment mcs \n      ON cc.Segment = mcs.Segment AND cc.TotalConsumption = mcs.MinConsumption\n),\n-- Calculate annual average consumption of customers with minimum consumption per segment\nannual_avg_min_consumption AS (\n    SELECT \n        Segment,\n        AVG(TotalConsumption) AS AnnualAvgConsumption\n    FROM min_consumers\n    GROUP BY Segment\n)\nSELECT\n    (SELECT AnnualAvgConsumption FROM annual_avg_min_consumption WHERE Segment = 'SME') -\n    (SELECT AnnualAvgConsumption FROM annual_avg_min_consumption WHERE Segment = 'LAM') AS SME_minus_LAM,\n    \n    (SELECT AnnualAvgConsumption FROM annual_avg_min_consumption WHERE Segment = 'LAM') -\n    (SELECT AnnualAvgConsumption FROM annual_avg_min_consumption WHERE Segment = 'KAM') AS LAM_minus_KAM,\n    \n    (SELECT AnnualAvgConsumption FROM annual_avg_min_consumption WHERE Segment = 'KAM') -\n    (SELECT AnnualAvgConsumption FROM annual_avg_min_consumption WHERE Segment = 'SME') AS KAM_minus_SME",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "4b28ab96a981"
+        },
+        {
+          "iter": 5,
+          "sql": "WITH\n-- Filter customers by currency CZK\nczk_customers AS (\n    SELECT CustomerID, Segment\n    FROM customers\n    WHERE Currency = 'CZK'\n),\n-- Sum consumption per customer for 2013\nconsumption_2013 AS (\n    SELECT ym.CustomerID, SUM(ym.Consumption) AS total_consumption\n    FROM yearmonth ym\n    WHERE substr(ym.Date, 1, 4) = '2013'\n    GROUP BY ym.CustomerID\n),\n-- Join consumption with customers filtered by CZK\nconsumption_czk AS (\n    SELECT c.CustomerID, c.Segment, coalesce(cons.total_consumption, 0) AS total_consumption\n    FROM czk_customers c\n    LEFT JOIN consumption_2013 cons ON c.CustomerID = cons.CustomerID\n),\n-- Find minimum consumption per segment\nmin_consumption_per_segment AS (\n    SELECT Segment, MIN(total_consumption) AS min_consumption\n    FROM consumption_czk\n    GROUP BY Segment\n),\n-- Customers with minimum consumption per segment\nmin_consumers AS (\n    SELECT ccs.Segment, ccs.CustomerID, ccs.total_consumption\n    FROM consumption_czk ccs\n    JOIN min_consumption_per_segment mcps\n      ON ccs.Segment = mcps.Segment AND ccs.total_consumption = mcps.min_consumption\n),\n-- Calculate annual average consumption of min consumers per segment\nannual_avg_min_consumption AS (\n    SELECT Segment, AVG(total_consumption) AS avg_consumption\n    FROM min_consumers\n    GROUP BY Segment\n)\nSELECT\n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'SME') -\n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'LAM') AS diff_SME_LAM,\n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'LAM') -\n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'KAM') AS diff_LAM_KAM,\n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'KAM') -\n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'SME') AS diff_KAM_SME",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "3d5e2d86dd6d"
+        },
+        {
+          "iter": 6,
+          "sql": "WITH\n-- Filter customers by segment and currency CZK\ncustomers_czk AS (\n    SELECT CustomerID, Segment\n    FROM customers\n    WHERE Currency = 'CZK'\n),\n-- Sum consumption per customer for 2013\nconsumption_2013 AS (\n    SELECT ym.CustomerID, SUM(ym.Consumption) AS total_consumption\n    FROM yearmonth ym\n    WHERE substr(ym.Date, 1, 4) = '2013'\n    GROUP BY ym.CustomerID\n),\n-- Join consumption with customers to get segment and filter CZK customers only\nconsumption_segment AS (\n    SELECT c.Segment, c.CustomerID, co.total_consumption\n    FROM customers_czk c\n    JOIN consumption_2013 co ON c.CustomerID = co.CustomerID\n),\n-- Find minimum consumption per segment\nmin_consumption_per_segment AS (\n    SELECT Segment, MIN(total_consumption) AS min_consumption\n    FROM consumption_segment\n    GROUP BY Segment\n),\n-- Find customers with minimum consumption per segment\nmin_consumers AS (\n    SELECT cs.Segment, cs.CustomerID, cs.total_consumption\n    FROM consumption_segment cs\n    JOIN min_consumption_per_segment mc ON cs.Segment = mc.Segment AND cs.total_consumption = mc.min_consumption\n),\n-- Calculate annual average consumption of customers with minimum consumption per segment\nannual_avg_min_consumption AS (\n    SELECT Segment, AVG(total_consumption) AS avg_consumption\n    FROM min_consumers\n    GROUP BY Segment\n)\nSELECT\n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'SME') -\n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'LAM') AS diff_SME_LAM,\n    \n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'LAM') -\n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'KAM') AS diff_LAM_KAM,\n    \n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'KAM') -\n    (SELECT avg_consumption FROM annual_avg_min_consumption WHERE Segment = 'SME') AS diff_KAM_SME",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "471d034370aa"
+        },
+        {
+          "iter": 7,
+          "sql": "WITH\n-- Filter transactions paid in CZK in 2013 and sum consumption per customer\nCustomerConsumption AS (\n    SELECT\n        t.CustomerID,\n        SUM(t.Amount * t.Price) AS TotalPaid\n    FROM transactions_1k t\n    JOIN customers c ON t.CustomerID = c.CustomerID\n    WHERE c.Currency = 'CZK'\n      AND substr(t.Date, 1, 4) = '2013'\n    GROUP BY t.CustomerID\n),\n-- Join with customers to get segment and filter only customers with consumption > 0\nCustomerSegmentConsumption AS (\n    SELECT\n        c.CustomerID,\n        c.Segment,\n        cc.TotalPaid\n    FROM customers c\n    JOIN CustomerConsumption cc ON c.CustomerID = cc.CustomerID\n    WHERE cc.TotalPaid > 0\n),\n-- Find minimum consumption per segment\nMinConsumptionPerSegment AS (\n    SELECT\n        Segment,\n        MIN(TotalPaid) AS MinConsumption\n    FROM CustomerSegmentConsumption\n    GROUP BY Segment\n),\n-- Find customers with minimum consumption per segment\nMinCustomers AS (\n    SELECT\n        csc.Segment,\n        csc.CustomerID,\n        csc.TotalPaid\n    FROM CustomerSegmentConsumption csc\n    JOIN MinConsumptionPerSegment mcps\n      ON csc.Segment = mcps.Segment AND csc.TotalPaid = mcps.MinConsumption\n),\n-- Calculate annual average consumption of customers with minimum consumption per segment\nAnnualAvgMinConsumption AS (\n    SELECT\n        Segment,\n        AVG(TotalPaid) AS AnnualAvgConsumption\n    FROM MinCustomers\n    GROUP BY Segment\n)\nSELECT\n    (SELECT AnnualAvgConsumption FROM AnnualAvgMinConsumption WHERE Segment = 'SME') -\n    (SELECT AnnualAvgConsumption FROM AnnualAvgMinConsumption WHERE Segment = 'LAM') AS SME_minus_LAM,\n    \n    (SELECT AnnualAvgConsumption FROM AnnualAvgMinConsumption WHERE Segment = 'LAM') -\n    (SELECT AnnualAvgConsumption FROM AnnualAvgMinConsumption WHERE Segment = 'KAM') AS LAM_minus_KAM,\n    \n    (SELECT AnnualAvgConsumption FROM AnnualAvgMinConsumption WHERE Segment = 'KAM') -\n    (SELECT AnnualAvgConsumption FROM AnnualAvgMinConsumption WHERE Segment = 'SME') AS KAM_minus_SME",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "4b28ab96a981"
+        },
+        {
+          "iter": 8,
+          "sql": "WITH\n-- Filter customers by segment and currency CZK\ncustomers_czk AS (\n    SELECT CustomerID, Segment\n    FROM customers\n    WHERE Currency = 'CZK'\n),\n-- Sum consumption per customer for 2013\nconsumption_2013 AS (\n    SELECT ym.CustomerID, SUM(ym.Consumption) AS total_consumption\n    FROM yearmonth ym\n    WHERE substr(ym.Date,1,4) = '2013'\n    GROUP BY ym.CustomerID\n),\n-- Join consumption with customers filtered by CZK currency\nconsumption_czk AS (\n    SELECT c.Segment, c.CustomerID, co.total_consumption\n    FROM customers_czk c\n    JOIN consumption_2013 co ON c.CustomerID = co.CustomerID\n),\n-- Find minimum consumption per segment\nmin_consumption_per_segment AS (\n    SELECT Segment, MIN(total_consumption) AS min_consumption\n    FROM consumption_czk\n    GROUP BY Segment\n),\n-- Customers with minimum consumption per segment\nmin_consumers AS (\n    SELECT c.Segment, c.CustomerID, c.total_consumption\n    FROM consumption_czk c\n    JOIN min_consumption_per_segment m\n      ON c.Segment = m.Segment AND c.total_consumption = m.min_consumption\n),\n-- Count of min consumers per segment\nmin_consumers_count AS (\n    SELECT Segment, COUNT(*) AS cnt\n    FROM min_consumers\n    GROUP BY Segment\n),\n-- Sum of min consumption per segment (should be min_consumption * count)\nmin_consumption_sum AS (\n    SELECT m.Segment, m.min_consumption, mc.cnt\n    FROM min_consumption_per_segment m\n    JOIN min_consumers_count mc ON m.Segment = mc.Segment\n),\n-- Annual average consumption of customers with lowest consumption per segment\nannual_avg AS (\n    SELECT Segment, min_consumption * 1.0 / cnt AS avg_consumption\n    FROM min_consumption_sum\n),\n-- Select averages for SME, LAM, KAM\navg_sme AS (SELECT avg_consumption FROM annual_avg WHERE Segment = 'SME'),\navg_lam AS (SELECT avg_consumption FROM annual_avg WHERE Segment = 'LAM'),\navg_kam AS (SELECT avg_consumption FROM annual_avg WHERE Segment = 'KAM')\n\nSELECT\n    (SELECT avg_consumption FROM avg_sme) - (SELECT avg_consumption FROM avg_lam) AS diff_SME_LAM,\n    (SELECT avg_consumption FROM avg_lam) - (SELECT avg_consumption FROM avg_kam) AS diff_LAM_KAM,\n    (SELECT avg_consumption FROM avg_kam) - (SELECT avg_consumption FROM avg_sme) AS diff_KAM_SME",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "471d034370aa"
+        },
+        {
+          "iter": 9,
+          "sql": "WITH \n-- Filter transactions in 2013 paid in CZK and join with customers to get segments\ntrans_2013_czk AS (\n    SELECT \n        t.CustomerID,\n        c.Segment,\n        t.Amount * t.Price AS TotalPrice\n    FROM transactions_1k t\n    JOIN customers c ON t.CustomerID = c.CustomerID\n    WHERE t.Date BETWEEN '20130101' AND '20131231'\n      AND c.Currency = 'CZK'\n),\n-- Sum total price per customer in 2013 CZK\ncustomer_total_2013 AS (\n    SELECT \n        CustomerID,\n        Segment,\n        SUM(TotalPrice) AS TotalConsumption\n    FROM trans_2013_czk\n    GROUP BY CustomerID, Segment\n),\n-- Find minimum consumption per segment\nmin_consumption_per_segment AS (\n    SELECT \n        Segment,\n        MIN(TotalConsumption) AS MinConsumption\n    FROM customer_total_2013\n    GROUP BY Segment\n),\n-- Customers with minimum consumption per segment\nmin_consumers AS (\n    SELECT \n        c.CustomerID,\n        c.Segment,\n        c.TotalConsumption\n    FROM customer_total_2013 c\n    JOIN min_consumption_per_segment m\n      ON c.Segment = m.Segment AND c.TotalConsumption = m.MinConsumption\n),\n-- Count of minimum consumers per segment\nmin_consumers_count AS (\n    SELECT \n        Segment,\n        COUNT(*) AS MinConsumerCount\n    FROM min_consumers\n    GROUP BY Segment\n),\n-- Sum of consumption of minimum consumers per segment\nmin_consumers_sum AS (\n    SELECT \n        Segment,\n        SUM(TotalConsumption) AS SumMinConsumption\n    FROM min_consumers\n    GROUP BY Segment\n),\n-- Annual average consumption of minimum consumers per segment\nannual_avg_min_consumption AS (\n    SELECT \n        s.Segment,\n        s.SumMinConsumption / c.MinConsumerCount AS AnnualAvgConsumption\n    FROM min_consumers_sum s\n    JOIN min_consumers_count c ON s.Segment = c.Segment\n),\n-- Extract annual averages for SME, LAM, KAM\navg_SME AS (\n    SELECT AnnualAvgConsumption FROM annual_avg_min_consumption WHERE Segment = 'SME'\n),\navg_LAM AS (\n    SELECT AnnualAvgConsumption FROM annual_avg_min_consumption WHERE Segment = 'LAM'\n),\navg_KAM AS (\n    SELECT AnnualAvgConsumption FROM annual_avg_min_consumption WHERE Segment = 'KAM'\n)\nSELECT\n    (SELECT AnnualAvgConsumption FROM avg_SME) - (SELECT AnnualAvgConsumption FROM avg_LAM) AS SME_minus_LAM,\n    (SELECT AnnualAvgConsumption FROM avg_LAM) - (SELECT AnnualAvgConsumption FROM avg_KAM) AS LAM_minus_KAM,\n    (SELECT AnnualAvgConsumption FROM avg_KAM) - (SELECT AnnualAvgConsumption FROM avg_SME) AS KAM_minus_SME",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "4b28ab96a981"
+        }
+      ],
+      "metrics": {
+        "task_id": "bird-1481-debit_card_specializing",
+        "reached_good": false,
+        "found_then_broke": false,
+        "overshoot": false,
+        "oscillation": true,
+        "divergence": false
+      }
+    },
+    {
+      "task_id": "bird-1482-debit_card_specializing",
+      "difficulty": "challenging",
+      "s_series": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "first_success_iter": null,
+      "terminal_s": 1,
+      "input_tokens": 3992,
+      "output_tokens": 3542,
+      "trajectory": [
+        {
+          "iter": 0,
+          "sql": "WITH\n-- Filter transactions paid in EUR and aggregate consumption by CustomerID and year\nconsumption_by_year AS (\n    SELECT\n        c.Segment,\n        strftime('%Y', t.Date) AS Year,\n        t.CustomerID,\n        SUM(t.Amount * t.Price) AS Consumption\n    FROM transactions_1k t\n    JOIN customers c ON t.CustomerID = c.CustomerID\n    WHERE c.Currency = 'EUR'\n      AND strftime('%Y', t.Date) IN ('2012', '2013')\n      AND c.Segment IN ('SME', 'LAM', 'KAM')\n    GROUP BY c.Segment, t.CustomerID, Year\n),\n-- Aggregate consumption by segment and year\nsegment_year_consumption AS (\n    SELECT\n        Segment,\n        Year,\n        SUM(Consumption) AS TotalConsumption\n    FROM consumption_by_year\n    GROUP BY Segment, Year\n),\n-- Calculate increase, decrease and percentage increase per segment\nsegment_increase AS (\n    SELECT\n        s2013.Segment,\n        s2013.TotalConsumption AS Consumption2013,\n        COALESCE(s2012.TotalConsumption, 0) AS Consumption2012,\n        (s2013.TotalConsumption - COALESCE(s2012.TotalConsumption, 0)) AS IncreaseOrDecrease,\n        CASE \n            WHEN s2013.TotalConsumption = 0 THEN NULL\n            ELSE ((s2013.TotalConsumption - COALESCE(s2012.TotalConsumption, 0)) * 100.0 / s2013.TotalConsumption)\n        END AS PercentageIncrease\n    FROM segment_year_consumption s2013\n    LEFT JOIN segment_year_consumption s2012\n        ON s2013.Segment = s2012.Segment AND s2012.Year = '2012'\n    WHERE s2013.Year = '2013'\n)\nSELECT\n    (SELECT Segment FROM segment_increase ORDER BY PercentageIncrease DESC LIMIT 1) AS SegmentWithBiggestIncrease,\n    (SELECT PercentageIncrease FROM segment_increase ORDER BY PercentageIncrease DESC LIMIT 1) AS BiggestPercentageIncrease,\n    (SELECT Segment FROM segment_increase ORDER BY PercentageIncrease ASC LIMIT 1) AS SegmentWithLowestIncrease,\n    (SELECT PercentageIncrease FROM segment_increase ORDER BY PercentageIncrease ASC LIMIT 1) AS LowestPercentageIncrease",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "f02ab32f5ba3"
+        },
+        {
+          "iter": 1,
+          "sql": "WITH cons_2012_2013 AS (\n    SELECT \n        c.Segment,\n        substr(y.Date, 1, 4) AS Year,\n        SUM(y.Consumption) AS TotalConsumption\n    FROM yearmonth y\n    JOIN customers c ON y.CustomerID = c.CustomerID\n    WHERE c.Segment IN ('SME', 'LAM', 'KAM')\n      AND c.Currency = 'EUR'\n      AND substr(y.Date, 1, 4) IN ('2012', '2013')\n    GROUP BY c.Segment, Year\n),\npivoted AS (\n    SELECT\n        Segment,\n        MAX(CASE WHEN Year = '2012' THEN TotalConsumption ELSE 0 END) AS Cons2012,\n        MAX(CASE WHEN Year = '2013' THEN TotalConsumption ELSE 0 END) AS Cons2013\n    FROM cons_2012_2013\n    GROUP BY Segment\n),\ncalc AS (\n    SELECT\n        Segment,\n        Cons2013,\n        Cons2013 - Cons2012 AS IncreaseOrDecrease,\n        CASE WHEN Cons2013 != 0 THEN ((Cons2013 - Cons2012) * 100.0 / Cons2013) ELSE NULL END AS PercentageIncrease\n    FROM pivoted\n)\nSELECT \n    'Biggest Increase' AS Type,\n    Segment,\n    PercentageIncrease\nFROM calc\nORDER BY PercentageIncrease DESC\nLIMIT 1\n\nUNION ALL\n\nSELECT \n    'Lowest Increase' AS Type,\n    Segment,\n    PercentageIncrease\nFROM calc\nORDER BY PercentageIncrease ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": false,
+          "error": "OperationalError: ORDER BY clause should come after UNION ALL not before",
+          "result_hash": "ERR"
+        },
+        {
+          "iter": 2,
+          "sql": "WITH consumption_2012_2013 AS (\n    SELECT \n        c.Segment,\n        substr(y.Date, 1, 4) AS Year,\n        SUM(y.Consumption) AS TotalConsumption\n    FROM yearmonth y\n    JOIN customers c ON y.CustomerID = c.CustomerID\n    WHERE c.Currency = 'EUR' AND substr(y.Date, 1, 4) IN ('2012', '2013') AND c.Segment IN ('SME', 'LAM', 'KAM')\n    GROUP BY c.Segment, Year\n),\nconsumption_diff AS (\n    SELECT \n        c2013.Segment,\n        c2013.TotalConsumption AS Consumption2013,\n        c2013.TotalConsumption - IFNULL(c2012.TotalConsumption, 0) AS IncreaseOrDecrease,\n        ((c2013.TotalConsumption - IFNULL(c2012.TotalConsumption, 0)) * 100.0) / c2013.TotalConsumption AS PercentageIncrease\n    FROM \n        (SELECT * FROM consumption_2012_2013 WHERE Year = '2013') c2013\n    LEFT JOIN \n        (SELECT * FROM consumption_2012_2013 WHERE Year = '2012') c2012\n    ON c2013.Segment = c2012.Segment\n)\nSELECT 'Biggest Increase' AS Type, Segment, PercentageIncrease\nFROM consumption_diff\nORDER BY PercentageIncrease DESC\nLIMIT 1\nUNION ALL\nSELECT 'Lowest Increase' AS Type, Segment, PercentageIncrease\nFROM consumption_diff\nORDER BY PercentageIncrease ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": false,
+          "error": "OperationalError: ORDER BY clause should come after UNION ALL not before",
+          "result_hash": "ERR"
+        },
+        {
+          "iter": 3,
+          "sql": "WITH consumption_2012 AS (\n    SELECT c.Segment, SUM(y.Consumption) AS consumption_2012\n    FROM yearmonth y\n    JOIN customers c ON y.CustomerID = c.CustomerID\n    WHERE substr(y.Date, 1, 4) = '2012' AND c.Currency = 'EUR' AND c.Segment IN ('SME', 'LAM', 'KAM')\n    GROUP BY c.Segment\n),\nconsumption_2013 AS (\n    SELECT c.Segment, SUM(y.Consumption) AS consumption_2013\n    FROM yearmonth y\n    JOIN customers c ON y.CustomerID = c.CustomerID\n    WHERE substr(y.Date, 1, 4) = '2013' AND c.Currency = 'EUR' AND c.Segment IN ('SME', 'LAM', 'KAM')\n    GROUP BY c.Segment\n),\npercentage_changes AS (\n    SELECT \n        c13.Segment,\n        c13.consumption_2013,\n        c12.consumption_2012,\n        (c13.consumption_2013 - c12.consumption_2012) AS increase_or_decrease,\n        CASE \n            WHEN c13.consumption_2013 = 0 THEN NULL\n            ELSE ((c13.consumption_2013 - c12.consumption_2012) * 100.0 / c13.consumption_2013)\n        END AS percentage_increase\n    FROM consumption_2013 c13\n    JOIN consumption_2012 c12 ON c13.Segment = c12.Segment\n)\nSELECT 'biggest' AS type, Segment, percentage_increase\nFROM percentage_changes\nWHERE percentage_increase = (SELECT MAX(percentage_increase) FROM percentage_changes)\nUNION ALL\nSELECT 'lowest' AS type, Segment, percentage_increase\nFROM percentage_changes\nWHERE percentage_increase = (SELECT MIN(percentage_increase) FROM percentage_changes)",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "23adbd74361e"
+        },
+        {
+          "iter": 4,
+          "sql": "WITH cons_2012_2013 AS (\n    SELECT \n        c.Segment,\n        substr(y.Date, 1, 4) AS Year,\n        SUM(y.Consumption) AS TotalConsumption\n    FROM yearmonth y\n    JOIN customers c ON y.CustomerID = c.CustomerID\n    WHERE c.Currency = 'EUR' AND substr(y.Date, 1, 4) IN ('2012', '2013')\n      AND c.Segment IN ('SME', 'LAM', 'KAM')\n    GROUP BY c.Segment, Year\n),\ncons_pivot AS (\n    SELECT\n        Segment,\n        MAX(CASE WHEN Year = '2012' THEN TotalConsumption ELSE 0 END) AS Cons2012,\n        MAX(CASE WHEN Year = '2013' THEN TotalConsumption ELSE 0 END) AS Cons2013\n    FROM cons_2012_2013\n    GROUP BY Segment\n),\ncons_calc AS (\n    SELECT\n        Segment,\n        Cons2012,\n        Cons2013,\n        (Cons2013 - Cons2012) AS IncreaseOrDecrease,\n        CASE WHEN Cons2013 != 0 THEN ((Cons2013 - Cons2012) * 100.0 / Cons2013) ELSE NULL END AS PercentageIncrease\n    FROM cons_pivot\n)\nSELECT \n    'Biggest Increase' AS Type,\n    Segment,\n    PercentageIncrease\nFROM cons_calc\nORDER BY PercentageIncrease DESC\nLIMIT 1\n\nUNION ALL\n\nSELECT \n    'Lowest Increase' AS Type,\n    Segment,\n    PercentageIncrease\nFROM cons_calc\nORDER BY PercentageIncrease ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": false,
+          "error": "OperationalError: ORDER BY clause should come after UNION ALL not before",
+          "result_hash": "ERR"
+        },
+        {
+          "iter": 5,
+          "sql": "WITH consumption_2012_2013 AS (\n    SELECT \n        c.Segment,\n        substr(y.Date, 1, 4) AS Year,\n        SUM(y.Consumption) AS TotalConsumption\n    FROM yearmonth y\n    JOIN customers c ON y.CustomerID = c.CustomerID\n    WHERE c.Currency = 'EUR' AND substr(y.Date, 1, 4) IN ('2012', '2013')\n      AND c.Segment IN ('SME', 'LAM', 'KAM')\n    GROUP BY c.Segment, Year\n),\ndiffs AS (\n    SELECT \n        c2013.Segment,\n        c2013.TotalConsumption AS Consumption2013,\n        c2012.TotalConsumption AS Consumption2012,\n        (c2013.TotalConsumption - c2012.TotalConsumption) AS IncreaseOrDecrease,\n        ((c2013.TotalConsumption - c2012.TotalConsumption) / c2013.TotalConsumption) * 100.0 AS PercentageIncrease\n    FROM \n        (SELECT * FROM consumption_2012_2013 WHERE Year = '2013') c2013\n    JOIN \n        (SELECT * FROM consumption_2012_2013 WHERE Year = '2012') c2012\n    ON c2013.Segment = c2012.Segment\n)\nSELECT 'Biggest Increase' AS Type, Segment, PercentageIncrease\nFROM diffs\nORDER BY PercentageIncrease DESC\nLIMIT 1\nUNION ALL\nSELECT 'Lowest Increase' AS Type, Segment, PercentageIncrease\nFROM diffs\nORDER BY PercentageIncrease ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": false,
+          "error": "OperationalError: ORDER BY clause should come after UNION ALL not before",
+          "result_hash": "ERR"
+        },
+        {
+          "iter": 6,
+          "sql": "WITH consumption_2012_2013 AS (\n    SELECT \n        c.Segment,\n        substr(y.Date, 1, 4) AS Year,\n        SUM(y.Consumption) AS TotalConsumption\n    FROM yearmonth y\n    JOIN customers c ON y.CustomerID = c.CustomerID\n    WHERE c.Currency = 'EUR' AND substr(y.Date, 1, 4) IN ('2012', '2013')\n      AND c.Segment IN ('SME', 'LAM', 'KAM')\n    GROUP BY c.Segment, Year\n),\nconsumption_diff AS (\n    SELECT\n        c2013.Segment,\n        c2013.TotalConsumption AS Consumption2013,\n        c2012.TotalConsumption AS Consumption2012,\n        (c2013.TotalConsumption - c2012.TotalConsumption) AS IncreaseOrDecrease,\n        ((c2013.TotalConsumption - c2012.TotalConsumption) / c2013.TotalConsumption) * 100.0 AS PercentageIncrease\n    FROM\n        (SELECT * FROM consumption_2012_2013 WHERE Year = '2013') c2013\n    JOIN\n        (SELECT * FROM consumption_2012_2013 WHERE Year = '2012') c2012\n    ON c2013.Segment = c2012.Segment\n)\nSELECT 'Biggest Increase' AS Type, Segment, PercentageIncrease\nFROM consumption_diff\nORDER BY PercentageIncrease DESC\nLIMIT 1\nUNION ALL\nSELECT 'Lowest Increase' AS Type, Segment, PercentageIncrease\nFROM consumption_diff\nORDER BY PercentageIncrease ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": false,
+          "error": "OperationalError: ORDER BY clause should come after UNION ALL not before",
+          "result_hash": "ERR"
+        },
+        {
+          "iter": 7,
+          "sql": "WITH consumption_2012_2013 AS (\n    SELECT \n        c.Segment,\n        substr(ym.Date, 1, 4) AS Year,\n        SUM(ym.Consumption) AS TotalConsumption\n    FROM yearmonth ym\n    JOIN customers c ON ym.CustomerID = c.CustomerID\n    WHERE c.Currency = 'EUR' AND substr(ym.Date, 1, 4) IN ('2012', '2013')\n      AND c.Segment IN ('SME', 'LAM', 'KAM')\n    GROUP BY c.Segment, Year\n),\ndiffs AS (\n    SELECT\n        c2013.Segment,\n        c2013.TotalConsumption AS Consumption2013,\n        c2012.TotalConsumption AS Consumption2012,\n        (c2013.TotalConsumption - c2012.TotalConsumption) AS IncreaseOrDecrease,\n        ((c2013.TotalConsumption - c2012.TotalConsumption) / c2013.TotalConsumption) * 100.0 AS PercentageIncrease\n    FROM \n        (SELECT * FROM consumption_2012_2013 WHERE Year = '2013') c2013\n    JOIN \n        (SELECT * FROM consumption_2012_2013 WHERE Year = '2012') c2012\n    ON c2013.Segment = c2012.Segment\n)\nSELECT 'Biggest Increase' AS Type, Segment, PercentageIncrease\nFROM diffs\nORDER BY PercentageIncrease DESC\nLIMIT 1\nUNION ALL\nSELECT 'Lowest Increase' AS Type, Segment, PercentageIncrease\nFROM diffs\nORDER BY PercentageIncrease ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": false,
+          "error": "OperationalError: ORDER BY clause should come after UNION ALL not before",
+          "result_hash": "ERR"
+        },
+        {
+          "iter": 8,
+          "sql": "WITH consumption_2012_2013 AS (\n    SELECT \n        c.Segment,\n        substr(y.Date, 1, 4) AS Year,\n        SUM(y.Consumption) AS TotalConsumption\n    FROM yearmonth y\n    JOIN customers c ON y.CustomerID = c.CustomerID\n    WHERE c.Currency = 'EUR' AND substr(y.Date, 1, 4) IN ('2012', '2013')\n      AND c.Segment IN ('SME', 'LAM', 'KAM')\n    GROUP BY c.Segment, Year\n),\ndiffs AS (\n    SELECT \n        c2013.Segment,\n        c2013.TotalConsumption AS Consumption2013,\n        c2012.TotalConsumption AS Consumption2012,\n        (c2013.TotalConsumption - c2012.TotalConsumption) AS IncreaseOrDecrease,\n        ((c2013.TotalConsumption - c2012.TotalConsumption) / c2013.TotalConsumption) * 100.0 AS PercentageIncrease\n    FROM \n        (SELECT * FROM consumption_2012_2013 WHERE Year = '2013') c2013\n    JOIN \n        (SELECT * FROM consumption_2012_2013 WHERE Year = '2012') c2012\n    ON c2013.Segment = c2012.Segment\n)\nSELECT 'Biggest Increase' AS Type, Segment, PercentageIncrease\nFROM diffs\nORDER BY PercentageIncrease DESC\nLIMIT 1\nUNION ALL\nSELECT 'Lowest Increase' AS Type, Segment, PercentageIncrease\nFROM diffs\nORDER BY PercentageIncrease ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": false,
+          "error": "OperationalError: ORDER BY clause should come after UNION ALL not before",
+          "result_hash": "ERR"
+        },
+        {
+          "iter": 9,
+          "sql": "WITH consumption_2012_2013 AS (\n    SELECT \n        c.Segment,\n        substr(y.Date, 1, 4) AS Year,\n        SUM(y.Consumption) AS TotalConsumption\n    FROM yearmonth y\n    JOIN customers c ON y.CustomerID = c.CustomerID\n    WHERE c.Currency = 'EUR' AND substr(y.Date, 1, 4) IN ('2012', '2013')\n      AND c.Segment IN ('SME', 'LAM', 'KAM')\n    GROUP BY c.Segment, Year\n),\nconsumption_diff AS (\n    SELECT\n        c2013.Segment,\n        c2013.TotalConsumption AS Consumption2013,\n        c2013.TotalConsumption - IFNULL(c2012.TotalConsumption, 0) AS IncreaseOrDecrease,\n        ((c2013.TotalConsumption - IFNULL(c2012.TotalConsumption, 0)) * 100.0) / c2013.TotalConsumption AS PercentageIncrease\n    FROM\n        (SELECT * FROM consumption_2012_2013 WHERE Year = '2013') c2013\n    LEFT JOIN\n        (SELECT * FROM consumption_2012_2013 WHERE Year = '2012') c2012\n    ON c2013.Segment = c2012.Segment\n)\nSELECT 'Biggest Increase' AS Type, Segment, PercentageIncrease\nFROM consumption_diff\nORDER BY PercentageIncrease DESC\nLIMIT 1\nUNION ALL\nSELECT 'Lowest Increase' AS Type, Segment, PercentageIncrease\nFROM consumption_diff\nORDER BY PercentageIncrease ASC\nLIMIT 1",
+          "s": 1,
+          "exec_ok": false,
+          "error": "OperationalError: ORDER BY clause should come after UNION ALL not before",
+          "result_hash": "ERR"
+        }
+      ],
+      "metrics": {
+        "task_id": "bird-1482-debit_card_specializing",
+        "reached_good": false,
+        "found_then_broke": false,
+        "overshoot": false,
+        "oscillation": true,
+        "divergence": false
+      }
+    },
+    {
+      "task_id": "bird-1483-debit_card_specializing",
+      "difficulty": "simple",
+      "s_series": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "first_success_iter": 0,
+      "terminal_s": 0,
+      "input_tokens": 3762,
+      "output_tokens": 370,
+      "trajectory": [
+        {
+          "iter": 0,
+          "sql": "SELECT SUM(Consumption) AS TotalConsumption\nFROM yearmonth\nWHERE CustomerID = 6\n  AND Date BETWEEN '201308' AND '201311'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "db7a9df9d065"
+        },
+        {
+          "iter": 1,
+          "sql": "SELECT SUM(Consumption) AS TotalConsumption\nFROM yearmonth\nWHERE CustomerID = 6\n  AND Date BETWEEN '201308' AND '201311'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "db7a9df9d065"
+        },
+        {
+          "iter": 2,
+          "sql": "SELECT SUM(Consumption) AS TotalConsumption\nFROM yearmonth\nWHERE CustomerID = 6\n  AND Date BETWEEN '201308' AND '201311'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "db7a9df9d065"
+        },
+        {
+          "iter": 3,
+          "sql": "SELECT SUM(Consumption) AS TotalConsumption\nFROM yearmonth\nWHERE CustomerID = 6\n  AND Date BETWEEN '201308' AND '201311'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "db7a9df9d065"
+        },
+        {
+          "iter": 4,
+          "sql": "SELECT SUM(Consumption) AS TotalConsumption\nFROM yearmonth\nWHERE CustomerID = 6\n  AND Date BETWEEN '201308' AND '201311'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "db7a9df9d065"
+        },
+        {
+          "iter": 5,
+          "sql": "SELECT SUM(Consumption) AS TotalConsumption\nFROM yearmonth\nWHERE CustomerID = 6\n  AND Date BETWEEN '201308' AND '201311'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "db7a9df9d065"
+        },
+        {
+          "iter": 6,
+          "sql": "SELECT SUM(Consumption) AS TotalConsumption\nFROM yearmonth\nWHERE CustomerID = 6\n  AND Date BETWEEN '201308' AND '201311'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "db7a9df9d065"
+        },
+        {
+          "iter": 7,
+          "sql": "SELECT SUM(Consumption) AS TotalConsumption\nFROM yearmonth\nWHERE CustomerID = 6\n  AND Date BETWEEN '201308' AND '201311'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "db7a9df9d065"
+        },
+        {
+          "iter": 8,
+          "sql": "SELECT SUM(Consumption) AS TotalConsumption\nFROM yearmonth\nWHERE CustomerID = 6\n  AND Date BETWEEN '201308' AND '201311'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "db7a9df9d065"
+        },
+        {
+          "iter": 9,
+          "sql": "SELECT SUM(Consumption) AS TotalConsumption\nFROM yearmonth\nWHERE CustomerID = 6\n  AND Date BETWEEN '201308' AND '201311'",
+          "s": 0,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "db7a9df9d065"
+        }
+      ],
+      "metrics": {
+        "task_id": "bird-1483-debit_card_specializing",
+        "reached_good": true,
+        "found_then_broke": false,
+        "overshoot": false,
+        "oscillation": false,
+        "divergence": false
+      }
+    },
+    {
+      "task_id": "bird-1484-debit_card_specializing",
+      "difficulty": "simple",
+      "s_series": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "first_success_iter": null,
+      "terminal_s": 1,
+      "input_tokens": 3939,
+      "output_tokens": 574,
+      "trajectory": [
+        {
+          "iter": 0,
+          "sql": "SELECT \n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'CZE' AND Segment = 'discount') -\n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'SVK' AND Segment = 'discount') AS More_Discount_GasStations",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "6ef8b6eda018"
+        },
+        {
+          "iter": 1,
+          "sql": "SELECT \n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'CZE' AND Segment = 'discount') -\n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'SVK' AND Segment = 'discount') AS more_discount_gasstations",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "6ef8b6eda018"
+        },
+        {
+          "iter": 2,
+          "sql": "SELECT\n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'CZE' AND Segment = 'discount')\n    -\n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'SVK' AND Segment = 'discount') AS More_Discount_GasStations",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "6ef8b6eda018"
+        },
+        {
+          "iter": 3,
+          "sql": "SELECT\n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'CZE' AND Segment = 'discount') -\n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'SVK' AND Segment = 'discount') AS More_Discount_GasStations",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "6ef8b6eda018"
+        },
+        {
+          "iter": 4,
+          "sql": "SELECT\n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'CZE' AND Segment = 'discount') -\n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'SVK' AND Segment = 'discount') AS More_Discount_GasStations",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "6ef8b6eda018"
+        },
+        {
+          "iter": 5,
+          "sql": "SELECT \n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'CZE' AND Segment = 'discount') -\n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'SVK' AND Segment = 'discount') AS More_Discount_GasStations",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "6ef8b6eda018"
+        },
+        {
+          "iter": 6,
+          "sql": "SELECT\n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'CZE' AND Segment = 'discount')\n    -\n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'SVK' AND Segment = 'discount') AS MoreDiscountGasStations",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "6ef8b6eda018"
+        },
+        {
+          "iter": 7,
+          "sql": "SELECT \n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'CZE' AND Segment = 'discount') -\n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'SVK' AND Segment = 'discount') AS More_Discount_GasStations",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "6ef8b6eda018"
+        },
+        {
+          "iter": 8,
+          "sql": "SELECT \n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'CZE' AND Segment = 'discount') -\n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'SVK' AND Segment = 'discount') AS MoreDiscountGasStations",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "6ef8b6eda018"
+        },
+        {
+          "iter": 9,
+          "sql": "SELECT \n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'CZE' AND Segment = 'discount') -\n    (SELECT COUNT(*) FROM gasstations WHERE Country = 'SVK' AND Segment = 'discount') AS More_Discount_GasStations",
+          "s": 1,
+          "exec_ok": true,
+          "error": "",
+          "result_hash": "6ef8b6eda018"
+        }
+      ],
+      "metrics": {
+        "task_id": "bird-1484-debit_card_specializing",
+        "reached_good": false,
+        "found_then_broke": false,
+        "overshoot": false,
+        "oscillation": false,
+        "divergence": false
+      }
+    }
+  ]
+}

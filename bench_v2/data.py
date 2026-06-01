@@ -29,6 +29,7 @@ class Task:
     gold_sql: str           # reference query; its execution result is ground truth
     schema_ddl: str         # CREATE statements, fed to the model as context
     difficulty: Optional[str] = None
+    evidence: str = ""      # BIRD external-knowledge hint (standardly given to the model)
 
 
 # --------------------------------------------------------------------------
@@ -114,12 +115,13 @@ def load_bird_minidev(root: str, limit: Optional[int] = None) -> list[Task]:
         db_path = os.path.join(root, "dev_databases", db_id, f"{db_id}.sqlite")
         tasks.append(
             Task(
-                task_id=f"bird-{i}-{db_id}",
+                task_id=f"bird-{r.get('question_id', i)}-{db_id}",
                 question=r["question"],
                 db_path=db_path,
                 gold_sql=r.get("SQL") or r.get("gold_sql") or "",
                 schema_ddl=_read_schema(db_path),
                 difficulty=r.get("difficulty"),
+                evidence=r.get("evidence", "") or "",
             )
         )
     return tasks

@@ -20,6 +20,19 @@ from .data import Task
 
 _EXEC_TIMEOUT_S = 5.0
 
+# Defense-in-depth for running model-generated SQL against downloaded databases
+# (Path A hardening): we only ever execute read-only SELECT/WITH statements,
+# open every DB in read-only + immutable mode, and disable extension loading.
+# This neutralizes a malicious/destructive generated query (DROP/DELETE/ATTACH/
+# PRAGMA write) regardless of the database file's provenance.
+import re as _re
+
+_READONLY_RE = _re.compile(r"^\s*(?:--[^\n]*\n|\s)*\b(SELECT|WITH)\b", _re.IGNORECASE)
+
+
+def _is_read_only(sql: str) -> bool:
+    return bool(sql) and bool(_READONLY_RE.match(sql)) and ";" not in sql.strip().rstrip(";")
+
 
 @dataclass
 class ExecResult:
@@ -38,22 +51,32 @@ def _normalize(rows, order_sensitive: bool):
 def execute(sql: str, db_path: str, order_sensitive: bool = False) -> ExecResult:
     if not sql or not sql.strip():
         return ExecResult(False, None, "empty query")
+    if not _is_read_only(sql):
+        # reject non-SELECT / multi-statement queries outright (never run them)
+        return ExecResult(False, None, "rejected: only a single read-only SELECT/WITH is permitted")
+    con = None
     try:
-        con = sqlite3.connect(db_path, timeout=_EXEC_TIMEOUT_S)
+        # read-only + immutable URI: writes are impossible, so a generated
+        # DROP/DELETE/INSERT cannot affect the file even if it slipped the guard.
+        con = sqlite3.connect(
+            f"file:{db_path}?mode=ro&immutable=1", uri=True, timeout=_EXEC_TIMEOUT_S
+        )
+        try:
+            con.enable_load_extension(False)  # block loadable extensions
+        except Exception:
+            pass
         con.execute(f"PRAGMA busy_timeout = {int(_EXEC_TIMEOUT_S * 1000)}")
         cur = con.execute(sql)
         rows = cur.fetchall()
-        norm = _normalize(rows, order_sensitive)
-        if order_sensitive:
-            norm = frozenset({norm})  # keep type uniform; rarely used
-        return ExecResult(True, norm if not order_sensitive else frozenset(norm), "")
+        return ExecResult(True, _normalize(rows, order_sensitive), "")
     except Exception as e:  # noqa: BLE001 — any SQL/exec error is a failed attempt
         return ExecResult(False, None, f"{type(e).__name__}: {e}")
     finally:
-        try:
-            con.close()
-        except Exception:
-            pass
+        if con is not None:
+            try:
+                con.close()
+            except Exception:
+                pass
 
 
 def matches(pred_sql: str, task: Task, order_sensitive: bool = False) -> tuple[bool, ExecResult]:
