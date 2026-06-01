@@ -1,0 +1,255 @@
+{
+  "n_trials": 2000,
+  "degenerate_cost_trials": 0,
+  "claim1": {
+    "overall": {
+      "label": "OVERALL",
+      "n": 2000,
+      "S_stab": 89.62206935065932,
+      "S_conf": 88.08105647843307,
+      "dS": 1.541012872226255,
+      "dS_ci": [
+        1.4451684890385492,
+        1.6382354763341704
+      ],
+      "dQ": 0.015490699798257504,
+      "dQ_ci": [
+        0.01009759936772502,
+        0.02168307685943575
+      ],
+      "verdict": "NULL -> HYBRID (savings indistinguishable at matched quality)"
+    },
+    "W1-W4": {
+      "label": "W1-W4 natural",
+      "n": 1400,
+      "S_stab": 95.13167360934065,
+      "S_conf": 94.707074871943,
+      "dS": 0.4245987373976155,
+      "dS_ci": [
+        0.3491115509004806,
+        0.50096656662043
+      ],
+      "dQ": 0.022129571140367864,
+      "dQ_ci": [
+        0.014368435243295632,
+        0.03074736422157306
+      ],
+      "verdict": "NULL -> HYBRID (savings indistinguishable at matched quality)"
+    },
+    "W5": {
+      "label": "W5 adversarial",
+      "n": 600,
+      "S_stab": 76.76632608040293,
+      "S_conf": 72.62034689357652,
+      "dS": 4.145979186826415,
+      "dS_ci": [
+        4.057898382595421,
+        4.2254258238493705
+      ],
+      "dQ": 0.0,
+      "dQ_ci": [
+        0.0,
+        0.0
+      ],
+      "verdict": "NULL -> HYBRID (savings indistinguishable at matched quality)"
+    },
+    "patience_sensitivity_dS": {
+      "1": -0.05117044969547043,
+      "2": 1.541012872226255,
+      "3": 3.0546673916149523
+    }
+  },
+  "claim2": {
+    "W_total": 1368,
+    "W_family": {
+      "W1-W4": 168,
+      "W5": 1200
+    },
+    "U_osc": 288,
+    "ratio_osc": 21.05263157894737,
+    "U_div": 377,
+    "ratio_div": 27.558479532163744,
+    "U_all": 665,
+    "ratio_all": 48.611111111111114,
+    "verdict": "PASS"
+  },
+  "A1": {
+    "n_flat": 968,
+    "n_vary": 1032,
+    "osc_std_all_median": 0.03276258347914106,
+    "ab_lag1_ac_median": -0.08084520834544433,
+    "step_snr_median": 0.23570226039551584,
+    "step_snr_frac_gt1": 0.0,
+    "var_ratio_median": 0.022669034432784452
+  },
+  "A2": {
+    "jit_ab_median": 0.0,
+    "jit_log_median": 0.0,
+    "windows": {
+      "1": {
+        "median_stop": 1.0,
+        "premature": 74,
+        "late": 19,
+        "changed_vs_prev": null
+      },
+      "3": {
+        "median_stop": 1.0,
+        "premature": 74,
+        "late": 19,
+        "changed_vs_prev": 0.0005
+      },
+      "5": {
+        "median_stop": 1.0,
+        "premature": 74,
+        "late": 19,
+        "changed_vs_prev": 0.0095
+      },
+      "7": {
+        "median_stop": 1.0,
+        "premature": 74,
+        "late": 19,
+        "changed_vs_prev": 0.0055
+      }
+    }
+  },
+  "A3": {
+    "w1_bounce": {
+      "langgraph": 114,
+      "casdk": 66,
+      "langgraph_nonmono": 123,
+      "casdk_nonmono": 74
+    },
+    "by_framework": {
+      "claude-agent-sdk": {
+        "n": 200,
+        "med_stop": 1.0,
+        "med_gm": 0.5454545454545455,
+        "med_osc": 8.472682124045022e-16,
+        "outcomes": {
+          "converged": 177,
+          "diverged": 14,
+          "oscillating": 9
+        }
+      },
+      "langgraph": {
+        "n": 600,
+        "med_stop": 1.0,
+        "med_gm": 0.6666666666666666,
+        "med_osc": 0.060741174094319623,
+        "outcomes": {
+          "converged": 369,
+          "diverged": 143,
+          "oscillating": 88
+        }
+      },
+      "autogen": {
+        "n": 200,
+        "med_stop": 1.0,
+        "med_gm": 1.0,
+        "med_osc": 8.472682124045022e-16,
+        "outcomes": {
+          "converged": 187,
+          "oscillating": 13
+        }
+      },
+      "crewai": {
+        "n": 400,
+        "med_stop": 2.0,
+        "med_gm": 0.75,
+        "med_osc": 0.07301548488812973,
+        "outcomes": {
+          "converged": 184,
+          "oscillating": 94,
+          "diverged": 122
+        }
+      },
+      "openai-agents": {
+        "n": 200,
+        "med_stop": 1.0,
+        "med_gm": 1.0,
+        "med_osc": 8.472682124045022e-16,
+        "outcomes": {
+          "converged": 199,
+          "oscillating": 1
+        }
+      },
+      "langchain": {
+        "n": 200,
+        "med_stop": 1.0,
+        "med_gm": 1.0,
+        "med_osc": 8.472682124045022e-16,
+        "outcomes": {
+          "converged": 170,
+          "oscillating": 29,
+          "diverged": 1
+        }
+      },
+      "bare-anthropic": {
+        "n": 200,
+        "med_stop": 2.0,
+        "med_gm": 0.75,
+        "med_osc": 0.08536574514973974,
+        "outcomes": {
+          "diverged": 108,
+          "oscillating": 92
+        }
+      }
+    },
+    "w5_kw_stop": {
+      "H": 0.04004084858524948,
+      "p": 0.9679917031750415
+    },
+    "w5_kw_gm": {
+      "H": 2.9984079034938986,
+      "p": 0.22157986535310864
+    },
+    "w1_kw_stop": {
+      "H": 1.0826999999999316,
+      "p": 0.2986315379546679,
+      "med_osc_langgraph": 3.2800565969977917,
+      "med_osc_casdk": 8.472682124045022e-16
+    }
+  },
+  "A4": {
+    "bench_def": {
+      "n_cat": 353,
+      "n_lead": 353,
+      "median": 2.0,
+      "mean": 3.6458923512747874,
+      "frac_ge2": 0.5892351274787535,
+      "frac_ge3": 0.4702549575070821,
+      "frac_lt0": 0.0
+    },
+    "strict_def": {
+      "n_degrade": 1019,
+      "n_lead": 1019,
+      "median": 0.0,
+      "mean": 0.930323846908734,
+      "frac_ge1": 0.2747791952894995,
+      "frac_ge2": 0.1786064769381747,
+      "frac_ge3": 0.11285574092247301,
+      "frac_eq0": 0.7252208047105005,
+      "frac_lt0": 0.0,
+      "hist": {
+        "5": 20,
+        "0": 739,
+        "2": 67,
+        "3": 39,
+        "16": 2,
+        "9": 6,
+        "6": 6,
+        "8": 7,
+        "11": 7,
+        "10": 2,
+        "13": 2,
+        "7": 4,
+        "18": 3,
+        "1": 98,
+        "4": 12,
+        "12": 2,
+        "15": 2,
+        "14": 1
+      }
+    }
+  }
+}
