@@ -13,12 +13,13 @@ is real and not flaky execution.
 from __future__ import annotations
 
 import sqlite3
+import threading
 from dataclasses import dataclass
 from typing import Optional
 
 from .data import Task
 
-_EXEC_TIMEOUT_S = 5.0
+_EXEC_TIMEOUT_S = 5.0  # wall-clock cap on a single query's EXECUTION (not just locks)
 
 # Defense-in-depth for running model-generated SQL against downloaded databases
 # (Path A hardening): we only ever execute read-only SELECT/WITH statements,
@@ -66,10 +67,20 @@ def execute(sql: str, db_path: str, order_sensitive: bool = False) -> ExecResult
         except Exception:
             pass
         con.execute(f"PRAGMA busy_timeout = {int(_EXEC_TIMEOUT_S * 1000)}")
-        cur = con.execute(sql)
-        rows = cur.fetchall()
+        # Watchdog: a model can emit a pathological query (e.g. a cartesian join
+        # over large BIRD tables) that pegs CPU indefinitely. busy_timeout only
+        # covers lock waits, not execution. Connection.interrupt() is documented
+        # as safe to call from another thread; fire it after _EXEC_TIMEOUT_S to
+        # abort a runaway query (raises -> treated as a failed attempt).
+        watchdog = threading.Timer(_EXEC_TIMEOUT_S, con.interrupt)
+        watchdog.start()
+        try:
+            cur = con.execute(sql)
+            rows = cur.fetchall()
+        finally:
+            watchdog.cancel()
         return ExecResult(True, _normalize(rows, order_sensitive), "")
-    except Exception as e:  # noqa: BLE001 — any SQL/exec error is a failed attempt
+    except Exception as e:  # noqa: BLE001 — any SQL/exec error (incl. interrupt) is a failed attempt
         return ExecResult(False, None, f"{type(e).__name__}: {e}")
     finally:
         if con is not None:
