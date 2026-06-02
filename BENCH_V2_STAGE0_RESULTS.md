@@ -102,3 +102,30 @@ clean-preservation here is BIRD- and SQL-specific (exact result identity). For f
 signal would be fuzzier (embedding/edit-distance) and likely recover less. **Correctness still requires a
 real error signal** (which recovers 100%). Treat zero-config as a low-friction on-ramp with explicit limits,
 not a verifier replacement. Needs Stage-1-scale n and a second workload before it informs any public claim.
+
+---
+
+## Appendix B (Stage 3) — Stop-policy head-to-head on the Stage-0 trajectories ($0)
+
+**Status:** zero-spend replay of four stop policies on the saved Stage-0 trajectories (script:
+`bench_v2/stage3_headtohead.py`). Population = the 176 reached-correct loops (a correct answer exists,
+so any wrong ship is a genuine miss). Binary oracle, so LoopGain's stop reduces to TARGET_MET +
+best-so-far (its oscillation classifier is degenerate on a 0/1 signal — the rich-signal version was
+tested separately on v1 data in `STABILITY_VS_CONFIDENCE_RESULTS.md`).
+
+| Stop policy | correct shipped | mean iters (cost) | missed |
+|---|---:|---:|---:|
+| naive (run to 10, ship terminal) | 151/176 = 85.8% | 10.00 | 25 |
+| confidence/plateau k=1 | 167/176 = 94.9% | 1.09 | 9 |
+| confidence/plateau k=2 | 171/176 = 97.2% | 1.14 | 5 |
+| confidence/plateau k=3 | 172/176 = 97.7% | 1.16 | 4 |
+| **LoopGain (target-met + best-so-far)** | **176/176 = 100.0%** | **1.26** | **0** |
+| zero-config (oracle-free, output-stability) | 164/176 = 93.2% | 1.11 | 12 |
+
+**Findings.**
+- **Naive run-to-end ships correct only 85.8%** (the 25 misses = the found-it-then-broke-it degrades) at 10 iterations. This is the failure LoopGain addresses.
+- **LoopGain ships 100% correct at 1.26 mean iterations** — recovers *all* degrades **and** uses ~8× fewer iterations than naive. On realistic verifier-gated loops, the target-met + best-so-far mechanism delivers correctness preservation *and* large cost reduction simultaneously.
+- **vs confidence/plateau:** cost is ~tied (1.14–1.26 iters), but LoopGain edges confidence on **correctness** (100% vs 94.9–97.7%). The confidence misses (4–9) are *false-stops* — the plateau rule stopped at a wrong answer before a later-reachable correct; target-met doesn't stop until it actually reaches correct (or the cap). So the LoopGain wedge here shows up on the **correctness** axis, not cost — complementing the v1 re-analysis (which found cost ~tied, quality non-inferior).
+- **Zero-config (no oracle): 93.2% at 1.11 iters** — most of the value with no error signal, consistent with Appendix A; the 12 misses are the drift + plateau cases a verifier would catch.
+
+**Caveat.** Binary oracle + same BIRD data; this isolates the target-met/best-so-far + false-stop axis, not the rich oscillation classifier. The confidence "false-stop" count is patience-dependent (k knob). Directional, single workload.
