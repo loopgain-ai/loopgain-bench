@@ -65,3 +65,40 @@ That population — loops that iterate past success — **is exactly what LoopGa
 - Deterministic 150-task sample (seed 20260531), same tasks both tiers.
 - Full per-iteration trajectories: `data/results/v2_bird_{gpt41mini,sonnet}.json`.
 - Frozen decision thresholds were not edited after seeing results; the WORKLOAD-DEPENDENT/HEADLINE boundary outcome is reported as-is, with CIs, rather than rounded to a cleaner story.
+
+---
+
+## Appendix A (EXPLORATORY) — Can an oracle-free output-stability signal recover the degrades?
+
+**Status: EXPLORATORY, not pre-registered.** Post-hoc analysis on the existing Stage-0 trajectories,
+to test a product idea: could LoopGain run with **no user-defined error function** — keying only on the
+*output trajectory* (how the result changes across iterations) — and still catch the found-it-then-broke-it
+degrades? An untuned heuristic, n=25 degrade cases, BIRD-only, exact result-set identity. Directional only.
+
+**Setup.** Each rule sees only the per-iteration **result identity** (a hash of the result set) — never the
+gold answer. We then score what the rule *would have shipped* against ground truth.
+
+| Rule (oracle-free) | FTB degrades recovered | clean loops preserved |
+|---|---:|---:|
+| ship last output (naive run-to-end) | 0/25 (0%) | 151/151 (100%) |
+| majority-vote on result | 11/25 (44%) | 149/151 (99%) |
+| **first-recurring result** | **16/25 (64%)** | 148/151 (98%) |
+| first-stable (held 2 iters) | 10/25 (40%) | 149/151 (99%) |
+| *oracle best-so-far (needs error signal — ceiling)* | *25/25 (100%)* | *(100%)* |
+
+**Net:** the best oracle-free rule ("ship the first output that recurs") raises correct-answers-shipped
+across all 176 reached-correct loops from **151/176 (86%, naive) → 164/176 (93%)** — with **no error
+definition and no verifier** — closing about half the gap to the perfect-oracle ceiling.
+
+**Why it works, and the hard limit.** 18/25 degrade trajectories are **cyclic** (the correct result
+re-appears, median 3×), so voting/recurrence lands on it without knowing it's correct. The other **7/25 are
+one-way drift** (correct produced once, then lost) — **structurally unrecoverable without a verifier**.
+So the oracle-free ceiling on this workload is ~72%; the heuristic got 64%.
+
+**What it does and does not support.** It supports offering a **zero-config "no error function" mode** that
+delivers the dynamics half (oscillation/divergence catch + rollback) for most degrades. It does **not**
+support claiming correctness: output-stability can settle on a *stable wrong* answer, and the 98–99%
+clean-preservation here is BIRD- and SQL-specific (exact result identity). For free-text/code outputs the
+signal would be fuzzier (embedding/edit-distance) and likely recover less. **Correctness still requires a
+real error signal** (which recovers 100%). Treat zero-config as a low-friction on-ramp with explicit limits,
+not a verifier replacement. Needs Stage-1-scale n and a second workload before it informs any public claim.
