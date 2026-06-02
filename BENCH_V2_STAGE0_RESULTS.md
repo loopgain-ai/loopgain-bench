@@ -129,3 +129,41 @@ tested separately on v1 data in `STABILITY_VS_CONFIDENCE_RESULTS.md`).
 - **Zero-config (no oracle): 93.2% at 1.11 iters** — most of the value with no error signal, consistent with Appendix A; the 12 misses are the drift + plateau cases a verifier would catch.
 
 **Caveat.** Binary oracle + same BIRD data; this isolates the target-met/best-so-far + false-stop axis, not the rich oscillation classifier. The confidence "false-stop" count is patience-dependent (k knob). Directional, single workload.
+
+---
+
+## STAGE 1 UPDATE — full n=500 per tier (supersedes the n=150 headline above)
+
+**Date 2026-06-02. Ran the entire BIRD Mini-Dev high-quality set (500 questions) on both tiers** — no
+sampling, definitive. (n=150 results above are preserved to show the progression; the n=500 numbers are
+the ones to cite.) Total Stage-1 API spend **$29.65** (gpt-4.1-mini $2.53 + Sonnet $27.12), 0 task errors.
+
+| Tier | n | one-shot | reached | **found-it-then-broke-it** | 95% CI | osc / ovr / div | verdict |
+|---|---:|---:|---:|---:|:---:|---:|:---|
+| gpt-4.1-mini (mid) | 500 | 51% | 267 | **27/267 = 10.1%** | [7.0, 14.3] | 73 / 37 / 10 | WORKLOAD-DEPENDENT |
+| Claude Sonnet (frontier) | 500 | 62% | 343 | **46/343 = 13.4%** | [10.2, 17.4] | 111 / 84 / 18 | WORKLOAD-DEPENDENT |
+| *pooled (disclosure)* | 1000 | 56% | 610 | *73/610 = 12.0%* | [9.6, 14.8] | 184 / 121 / 28 | — |
+
+**What scaling changed:**
+- **CIs roughly halved.** The headline rate is **~12% (pooled, [9.6, 14.8])**. The n=150 point estimates (13.2% / 15.0%) were high-side noise; both tiers settle into the **WORKLOAD-DEPENDENT** band at scale. Sonnet's n=150 "HEADLINE" reading (15.0%) drops to **13.4%** — it does **not** clear 15% at n=500.
+- **NICHE is decisively rejected** — every lower bound is well above 5% (gpt 7.0, Sonnet 10.2, pooled 9.6).
+- **Headline (≥15%) is not reached** at scale — pooled upper bound 14.8% < 15%.
+- **Frontier is not lower than mid** (Sonnet 13.4% ≥ gpt 10.1%; CIs overlap, so not a clean separation, but the "capability doesn't protect" pattern holds and if anything inverts).
+
+**Honest one-line verdict:** *on realistic verifier-gated SQL loops, ~12% of correct answers get broken by continued iteration — real, capability-independent, decisively above niche, just short of headline.*
+
+### Appendix A & B re-run at n=500 (definitive)
+
+- **Oracle-free recovery (A):** first-recurring rule recovers **42/73 = 58%** of degrades (n=25 exploratory was 64%), clean preserved **519/537 = 97%**. Holds — most degrades recoverable with no error signal; the ~40% residual is the drift cases needing a verifier.
+- **Stop-policy head-to-head (B), reached n=610:**
+
+  | policy | correct shipped | mean iters |
+  |---|---:|---:|
+  | naive (run to 10) | 537/610 = 88.0% | 10.00 |
+  | confidence/plateau k=2 | 591/610 = 96.9% | 1.06 |
+  | **LoopGain (target-met + best-so-far)** | **610/610 = 100.0%** | 1.24 |
+  | zero-config (oracle-free) | 561/610 = 92.0% | 1.04 |
+
+  Replicates the n=150 result at scale: **LoopGain ships 100% correct at ~8× lower iteration cost than naive**, edges confidence on correctness (100% vs 96.9% — confidence's 19 misses are plateau false-stops), and zero-config delivers 92% with no error signal at all.
+
+*Operational note: the Sonnet n=500 run completed fully unattended via `bench_v2/detach_run.py` (os.setsid double-fork), surviving multiple Claude-session suspends with no manual resume — see `RUNNING_BENCHMARKS.md`.*

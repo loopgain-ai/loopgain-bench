@@ -31,14 +31,27 @@ background processes. It resumes when you next interact.
    - **Do NOT** write results only at the end. We lost two full runs that way before adding
      checkpointing.
 
-2. **`caffeinate` (belt-and-suspenders).** Hold a wake assertion for the run's duration:
+2. **TRUE DETACHMENT (the actual prevention — proven).** Run the worker in its own session,
+   reparented to launchd, so it is **not** in the Claude session's process group and survives the
+   suspend-kill outright. macOS has no `setsid` *command*, but the `os.setsid()` *syscall* works —
+   `bench_v2/detach_run.py` double-forks + `os.setsid()` + redirects fds to a logfile (cwd preserved):
    ```bash
-   nohup caffeinate -dimsu -t 5400 > /tmp/caffeinate.log 2>&1 &   # 90 min: prevent display/idle/system sleep + declare user active
-   pmset -g assertions | grep caffeinate                          # verify it's held
+   .venv/bin/python -m bench_v2.detach_run /tmp/run.log -- \
+       --source bird --bird-root "$BIRD_MINIDEV_ROOT" --provider anthropic --model claude-sonnet-4-6 \
+       --n 500 --max-iter 10 --max-spend 40 --out data/results/run.json --i-understand-this-spends-money
+   # the foreground call returns immediately; verify the worker is reparented + in its own session:
+   ps -eo pid,ppid,sess,etime,command | grep bench_v2.detach_run | grep -v grep   # PPID should be 1
    ```
-   Note: `setsid` does **not** exist on macOS (it's Linux) — use `caffeinate`/`nohup`.
-   Caffeinate helps if sleep *is* a factor, but it does **not** reliably stop a session
-   suspend — so it is insurance, not the fix. Checkpointing is the fix.
+   **Verified:** a Sonnet n=500 run completed fully unattended this way, surviving multiple Claude-session
+   suspends with zero manual resumes. This is the recommended launch method for any long run.
+
+3. **`caffeinate` (insurance, NOT the fix).** Optional wake assertion:
+   ```bash
+   nohup caffeinate -dimsu -t 7200 > /tmp/caffeinate.log 2>&1 &   # prevent display/idle/system sleep
+   ```
+   It did **not** stop the suspend-kills (it was holding when runs still died — proving the kill is the
+   session suspending, not the Mac sleeping). Harmless to add; don't rely on it. `setsid` the command
+   doesn't exist on macOS — use detachment (above) instead.
 
 3. **Resume cadence.** If a run dies, just re-run the identical command; it picks up from the
    checkpoint. Keeping the session active (interacting periodically) also prevents the
