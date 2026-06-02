@@ -125,6 +125,7 @@ class OpenAIProvider(Provider):
             messages=[{"role": "system", "content": system},
                       {"role": "user", "content": user}],
             temperature=0.0,
+            timeout=60,  # per-request timeout: a hung connection fails -> retry, never blocks forever
         ))
         u = resp.usage
         self.usage.add(getattr(u, "prompt_tokens", 0), getattr(u, "completion_tokens", 0))
@@ -144,6 +145,7 @@ class AnthropicProvider(Provider):
             max_tokens=1024,
             system=system,
             messages=[{"role": "user", "content": user}],
+            timeout=60,  # per-request timeout: a hung connection fails -> retry, never blocks forever
         ))
         u = resp.usage
         self.usage.add(getattr(u, "input_tokens", 0), getattr(u, "output_tokens", 0))
