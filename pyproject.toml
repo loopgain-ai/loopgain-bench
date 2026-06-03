@@ -23,7 +23,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "loopgain>=0.2.0",
+    "loopgain==0.4.0",
     "numpy>=1.24",
 ]
 

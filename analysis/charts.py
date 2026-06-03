@@ -194,7 +194,10 @@ def chart_3_savings_by_segment(trials: list[dict]) -> None:
     for t in trials:
         by_outcome[t["conditions"]["LG"]["outcome"]].append(t)
 
-    segments = ["converged", "oscillating", "diverged"]
+    # loopgain 0.4.0: the failure segment that was "oscillating" under the
+    # 0.2.0 classifier is now correctly "stalled" (a flat/stuck loop stalls; it
+    # does not oscillate). "oscillating" now has n=1 and is not a chart segment.
+    segments = ["converged", "diverged", "stalled"]
     width = 0.25
     x = np.arange(len(segments))
 
@@ -263,7 +266,7 @@ def chart_4_band_emissions(trials: list[dict]) -> None:
     _set_title(
         fig, ax,
         "LoopGain band emission distribution",
-        "CONVERGING and STALLING bands sparsely exercised in this bench",
+        "A stuck loop is a stall: STALLING is common; OSCILLATING and CONVERGING sparsely exercised in this bench",
     )
     ax.grid(axis="y", alpha=0.3)
     plt.xticks(rotation=15, ha="right")
@@ -313,15 +316,26 @@ def chart_5_lead_time_histogram(trials: list[dict]) -> None:
 
 
 def chart_6_hero_seed34(trials: list[dict]) -> None:
+    """Visual hero: a found-then-degraded W1 trial. seed-34 (LangGraph/Haiku)
+    is the standing illustration — LG stops early with the correct answer while
+    max_iter=20 finds it, then degrades back to broken. All annotations are
+    DERIVED from the trial's recorded trajectory so this never goes stale across
+    re-runs (the exact stop/find/final iters vary with stochastic model output).
+    """
     hero = next(t for t in trials if t["trial_id"] == "w1-codegen-langgraph-claude-haiku-4-5-seed34")
     lg_eh = hero["conditions"]["LG"]["error_history"]
     b20_eh = hero["conditions"]["B20"]["error_history"]
+    lg_stop = len(lg_eh)                                   # iter LG stopped
+    b20_first0 = next((i + 1 for i, e in enumerate(b20_eh) if e == 0), None)  # iter B20 first found it
+    b20_final = b20_eh[-1]
+    prob = (hero.get("trial_metadata") or {}).get("problem_name", "")
+    title_sfx = f" ({prob})" if prob else ""
 
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(range(1, len(b20_eh) + 1), b20_eh, marker="o", color=BASELINE_COLORS["B20"],
-            label=f"B20 (max_iter=20) — final error = {b20_eh[-1]:.0f}, broken at iter 20")
+            label=f"B20 (max_iter=20) — final error = {b20_final:.0f}, broken at iter {len(b20_eh)}")
     ax.plot(range(1, len(lg_eh) + 1), lg_eh, marker="o", color=LG_COLOR, linewidth=2.5,
-            markersize=10, label=f"LoopGain — converged at iter 2, kept correct output")
+            markersize=10, label=f"LoopGain — converged at iter {lg_stop}, kept correct output")
     # Mark LG stop
     ax.scatter([len(lg_eh)], [lg_eh[-1]], s=200, facecolors="none", edgecolors=LG_COLOR,
                linewidths=2.5, zorder=5)
@@ -330,15 +344,17 @@ def chart_6_hero_seed34(trials: list[dict]) -> None:
     ax.set_xlabel("Iteration", fontsize=11)
     ax.set_ylabel("Failing tests (error)", fontsize=11)
     cost_delta = hero["cost_usd"]["B20"] - hero["cost_usd"]["LG"]
+    found_txt = (f"B20 first found it at iter {b20_first0}, then degraded back to broken"
+                 if b20_first0 else "B20 never settled on the answer")
     _set_title(
         fig, ax,
-        "W1 · CodeGen · LangGraph · Haiku 4.5 · seed=34 (MBPP/138)",
-        f"LoopGain found the answer at iter 2 and stopped. "
-        f"B20 found it at iter 8, then degraded back to broken. ${cost_delta:.4f} saved.",
+        f"W1 · CodeGen · LangGraph · Haiku 4.5 · seed=34{title_sfx}",
+        f"LoopGain found the answer at iter {lg_stop} and stopped. "
+        f"{found_txt}. ${cost_delta:.4f} saved.",
     )
     ax.legend(loc="upper right", fontsize=10)
     ax.grid(alpha=0.3)
-    ax.set_xticks(range(1, 21))
+    ax.set_xticks(range(1, len(b20_eh) + 1))
     plt.tight_layout()
     _save(OUT / "hero_seed34.png")
 

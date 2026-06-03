@@ -48,7 +48,14 @@ from .workload import IterationOutcome, TrialInput, Workload
 
 RAW_DIR = Path(__file__).resolve().parents[1] / "data" / "raw"
 WORST_CASE_ERROR = 1e6  # sentinel for failed iterations (lockdown #5)
-LOOPGAIN_VERSION = "0.2.0"  # pinned per BENCH_PROTOCOL.md
+# Stamp the JSONL header with the *actually installed* loopgain version so the
+# raw data can never silently disagree with the package under test. Pin lives
+# in pyproject.toml (loopgain==0.4.0); this reads what pip resolved.
+try:
+    from importlib.metadata import version as _pkg_version
+    LOOPGAIN_VERSION = _pkg_version("loopgain")
+except Exception:  # noqa: BLE001 — never let version lookup break a run
+    LOOPGAIN_VERSION = "unknown"
 
 
 def _run_baseline(workload: Workload, trial: TrialInput, max_iter: int, llm) -> dict:

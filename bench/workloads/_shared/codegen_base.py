@@ -12,8 +12,12 @@ Programmatic quality: pass rate (n_passing / n_total) in [0, 1].
 from __future__ import annotations
 
 import hashlib
+import json
 import random
 import re
+import subprocess
+import sys
+from pathlib import Path
 from typing import Optional
 
 from ...llm import Completion
@@ -33,105 +37,56 @@ def _extract_code(text: str) -> str:
     return (text or "").strip()
 
 
-def _with_timeout(fn, timeout_s: float):
-    """Run fn() in a daemon thread; return (result, timed_out, exception).
-
-    A daemon thread is used so that a pathological-LLM-code infinite loop
-    doesn't prevent process exit. concurrent.futures.ThreadPoolExecutor
-    uses non-daemon workers (so its __exit__ blocks forever on a hung
-    task) — see LESSONS.md.
-    """
-    import threading
-
-    result: list = [None]
-    error: list = [None]
-
-    def _wrap():
-        try:
-            result[0] = fn()
-        except Exception as e:  # noqa: BLE001
-            error[0] = e
-
-    t = threading.Thread(target=_wrap, daemon=True)
-    t.start()
-    t.join(timeout=timeout_s)
-    if t.is_alive():
-        # The thread is still running its (likely infinite) computation.
-        # We leak the daemon thread; it'll die when the process exits.
-        return None, True, None
-    return result[0], False, error[0]
+# Candidate-code execution runs in an ISOLATED subprocess (see
+# _codegen_exec_worker.py). The prior in-process guard (daemon thread +
+# join(timeout)) could not interrupt a GIL-holding compile of a pathological
+# expression: a single bad W1 trial leaked a thread that held the GIL forever
+# and froze the entire registered run. Process isolation lets the parent
+# enforce a real wall-clock SIGKILL — per RUNNING_BENCHMARKS.md §2.2/§6.
+_EXEC_WORKER = str(Path(__file__).with_name("_codegen_exec_worker.py"))
+# Outer wall-clock backstop, comfortably above the worker's inner budgets
+# (3s exec + 7s assertions = 10s) plus spawn/scheduling slack. When it fires,
+# subprocess.run SIGKILLs the worker — the kill a held GIL cannot evade.
+_EXEC_HARD_TIMEOUT_S = 25.0
 
 
 def _run_tests(code: str, entry_point: str, tests: list[str]) -> tuple[int, int, list[str]]:
-    """Exec the candidate code in a sandbox dict, then evaluate each assertion.
+    """Run candidate code + assertions in an ISOLATED, killable subprocess.
 
-    Budget: 3s for exec, 1s per assertion, 7s overall for all assertions
-    combined. Once any budget is exhausted, remaining assertions are
-    counted as failing (without running) so pathological LLM code can't
-    burn unbounded time.
+    Delegates to _codegen_exec_worker.py. Inner budgets (3s exec, 1s/assertion,
+    7s total) and pass/fail semantics are IDENTICAL to the old in-process logic;
+    isolation only adds a hard outer wall-clock kill so a pathological
+    GIL-holding compile can no longer freeze the bench runner. Returns
+    (n_passing, n_total, failed_messages); any worker timeout/crash counts as
+    ALL tests failing — same as the prior <exec timeout> path.
 
-    Implementation: thread-safe via daemon threads. Signals can only be
-    set from the main thread; the bench runner uses condition-level
-    threading inside run_trial, so SIGALRM-based timeouts would raise
-    ValueError on non-main threads. concurrent.futures.ThreadPoolExecutor
-    uses non-daemon workers so its context-manager exit blocks on hung
-    tasks. The daemon-thread + join(timeout) pattern below leaks the
-    thread on timeout but allows process exit (documented in LESSONS.md).
-
-    Returns (n_passing, n_total, failed_messages). Compile + runtime errors
-    on the code itself count as ALL tests failing.
-
-    The sandbox is a fresh dict; builtins are available but no filesystem/
-    network isolation — we rely on Anthropic's RLHF to not have the model
-    write filesystem-destructive code for these algorithmic toys. Documented
-    as a limitation in the writeup.
+    Sandbox isolation is process-level (fresh interpreter, fresh namespace) but
+    NOT filesystem/network isolation — we rely on Anthropic's RLHF to not have
+    the model write destructive code for these algorithmic toys. Documented as a
+    limitation in the writeup.
     """
-    import time as _time
-
-    sandbox: dict = {}
-
-    def _do_exec() -> dict:
-        local_sb: dict = {}
-        exec(code, local_sb)
-        return local_sb
-
-    # Phase 1: exec the candidate code with a 3s budget
-    exec_result, timed_out, exc = _with_timeout(_do_exec, 3.0)
-    if timed_out:
-        return 0, len(tests), ["<exec timeout>"] * len(tests)
-    if exc is not None:
-        return 0, len(tests), [f"<compile/exec error: {exc!r}>"] * len(tests)
-    sandbox = exec_result or {}
-
-    if entry_point and entry_point not in sandbox:
-        return 0, len(tests), [f"<missing entry point {entry_point!r}>"] * len(tests)
-
-    # Phase 2: evaluate each assertion with a 1s budget, 7s total
-    failed: list[str] = []
-    passing = 0
-    deadline = _time.time() + 7.0
-    for assertion in tests:
-        remaining = deadline - _time.time()
-        if remaining <= 0:
-            failed.append(f"{assertion}  -> <budget exhausted>")
-            continue
-        per_call_timeout = min(1.0, remaining)
-
-        def _do_eval(_a=assertion):
-            return bool(eval(_a, sandbox))
-
-        val, timed_out, exc = _with_timeout(_do_eval, per_call_timeout)
-        if timed_out:
-            failed.append(f"{assertion}  -> <timeout>")
-            continue
-        if exc is not None:
-            failed.append(f"{assertion}  -> {exc!r}")
-            continue
-        if val:
-            passing += 1
-        else:
-            failed.append(assertion)
-    return passing, len(tests), failed
+    payload = json.dumps({"code": code, "entry_point": entry_point, "tests": list(tests)})
+    try:
+        proc = subprocess.run(
+            [sys.executable, _EXEC_WORKER],
+            input=payload,
+            capture_output=True,
+            text=True,
+            timeout=_EXEC_HARD_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        # Worker wedged on a GIL-holding compile; subprocess.run SIGKILLed it.
+        return 0, len(tests), ["<exec hard-timeout>"] * len(tests)
+    except Exception as exc:  # noqa: BLE001 — never let a harness hiccup crash the trial
+        return 0, len(tests), [f"<worker spawn error: {exc!r}>"] * len(tests)
+    if proc.returncode != 0 or not proc.stdout.strip():
+        snippet = (proc.stderr or "").strip()[:200]
+        return 0, len(tests), [f"<worker crash rc={proc.returncode}: {snippet!r}>"] * len(tests)
+    try:
+        res = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return 0, len(tests), ["<worker bad output>"] * len(tests)
+    return int(res["n_passing"]), int(res["n_total"]), list(res["failed"])
 
 
 class CodegenWorkload(Workload):
