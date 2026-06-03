@@ -26,7 +26,7 @@
 ## Verdict against the frozen thresholds
 
 - By the letter of the pre-registration: **Sonnet = HEADLINE (15.0% ≥ 15%), gpt-4.1-mini = WORKLOAD-DEPENDENT (13.2%)**.
-- **The honest joint reading:** the two tiers are **statistically indistinguishable** — CIs [7.3, 22.6] and [9.3, 23.3] overlap almost completely and both straddle the 15% line. n=150 is not enough to place the rate precisely relative to the 15% boundary. **Do not claim "frontier models oscillate more."** The defensible statement is: **the rate is ~13–15% across both tiers, at the WORKLOAD-DEPENDENT/HEADLINE boundary, and decisively above NICHE.**
+- **The honest joint reading:** the two tiers are **statistically indistinguishable** — CIs [7.3, 22.6] and [9.3, 23.3] overlap almost completely and both straddle the 15% line. n=150 is not enough to place the rate precisely relative to the 15% boundary, and is **not** evidence that frontier models oscillate more. The supported statement is: **the rate is ~13–15% across both tiers, at the WORKLOAD-DEPENDENT/HEADLINE boundary, and decisively above NICHE.**
 - The one thing n=150 **does** settle cleanly: **NICHE (<5%) is rejected** — both lower CI bounds (7.3%, 9.3%) exceed 5%.
 
 This **contradicts the prior** stated in the prereg (§1) that LoopGain's clean-oracle sweet spot would be where oscillation is rarest. On BIRD it is not rare.

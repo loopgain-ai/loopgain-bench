@@ -104,7 +104,7 @@ The CONVERGING and STALLING bands are essentially unexercised at scale in this b
 - **By model capability**: 2026-era LLMs on calibrated published benchmarks rarely produce gradual-convergence trajectories. They one-shot or they oscillate. CONVERGING (steady error decrease over many iterations) is a textbook trajectory that real loops don't generate often.
 - **By workload design**: W5 (adversarial) is engineered for DIVERGING/OSCILLATING. W1-W4 (natural-distribution) are calibrated to one-shot 80-90% of trials. Neither family naturally produces "stalls near initial error" or "gradual convergence over 6-12 iters."
 
-**Implication for product positioning**: the LoopGain pitch should lead with "catches divergence and stops it" — the band where we have 347 real emissions and clear evidence. "Detects all five trajectory modes including gradual convergence" is technically true (the classifier emits CONVERGING when the trajectory features support it) but isn't directly validated at scale in this bench. A future bench targeting workloads with naturally-gradual convergence (e.g. longer-form generation tasks, multi-turn dialogue refinement) would be needed to characterize the CONVERGING and STALLING bands at production scale.
+**Scope of what this bench validates**: the DIVERGING and OSCILLATING bands are exercised at scale (347 real emissions) with clear evidence. The CONVERGING and STALLING bands fire correctly at unit-test level but are not directly validated at scale on this corpus — characterizing them would require a future bench targeting workloads with naturally-gradual convergence (e.g. longer-form generation tasks, multi-turn dialogue refinement).
 
 This is a finding, not a bug. The classifier code paths for those bands are exercised at unit-test level. They just don't fire often on this corpus mix at this model capability. We report it.
 
@@ -201,7 +201,7 @@ For trials where B20's final error exceeds 2× initial error (i.e. catastrophic 
 
 The kill threshold (median < 1 iter) is not fired — LG is correctly flagging before B20's catastrophe in essentially every case where B20 diverges (**352 of 353** B20 catastrophe trials had a warning band emitted at-or-before catastrophe; the median gap is 2 iters, not 0). But the protocol's prediction was 3, not 2.
 
-What this means for the public framing: don't claim "many iterations of advance warning." Claim "LoopGain flags divergence ≥ 2 iterations before max_iter=20 hits its catastrophic point on these workloads" — the conservative number, with the data shown.
+The conservative, data-backed statement: LoopGain emits a warning band a median of ≥ 2 iterations before `max_iter=20` reaches its catastrophic point on these workloads (352 of 353 catastrophe trials warned at-or-before catastrophe). The predicted floor was 3; the observed 2 is reported as-is.
 
 ---
 
@@ -316,7 +316,7 @@ Pre-acknowledged in the protocol, confirmed by the data:
 - **Single bench run per cell**: n=200 trials but only one collection epoch. Production traffic over months may behave differently.
 - **CONVERGING and STALLING bands sparsely exercised**: see Finding 3 above.
 - **W4 RAG programmatic delta (4 pp)**: LG hit@5 is 4 pp below B20 on iterative retrieval. Within the predicted ≤ 5 pp tolerance, but a real tradeoff: LG's aggressive default-threshold stop occasionally cuts off a query that more revision would have eventually answered. Users targeting retrieval-specific workloads may want to tune LoopGain's threshold conservatism.
-- **H-EARLYWARN median lead = 2 iter (predicted ≥ 3)**: kill threshold (< 1) not fired, but the predicted floor was missed by 1 iter. Public framing should say "≥ 2 iters advance warning on these workloads," not "many iterations."
+- **H-EARLYWARN median lead = 2 iter (predicted ≥ 3)**: kill threshold (< 1) not fired, but the predicted floor was missed by 1 iter. The data supports "≥ 2 iters advance warning on these workloads" — reported as-is, not rounded up.
 - **W1-LangGraph borderline winrate**: see Finding 2 above.
 
 ---
