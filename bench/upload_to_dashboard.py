@@ -47,9 +47,11 @@ except ImportError:  # pragma: no cover — certifi is in the venv
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = REPO_ROOT / "data" / "raw"
 
-# Pinned to the bench run under test. The bench publishes loopgain==0.2.0
-# results regardless of the library's current release version.
-LIBRARY_VERSION = "0.2.0"
+# Library version stamped on each uploaded payload. Defaults to the bench
+# run currently under test (0.4.0 — the shipped classifier, per RESULTS.md)
+# and is overridable with --library-version so it never silently goes stale
+# across re-runs.
+LIBRARY_VERSION = "0.4.0"
 LIBRARY_NAME = "loopgain"
 SCHEMA_VERSION = 3
 
@@ -326,6 +328,27 @@ def post_with_retry(
     return last
 
 
+def reset_endpoint_for(endpoint: str) -> str:
+    """Derive the tenant-reset URL from the aggregate ingest endpoint.
+
+    LOOPGAIN_TELEMETRY_ENDPOINT points at ``.../v1/aggregate``; the reset
+    route is its ``/reset`` sibling (``.../v1/aggregate/reset``).
+    """
+    return endpoint.rstrip("/") + "/reset"
+
+
+def reset_tenant(endpoint: str, token: str) -> tuple[int, str]:
+    """Clear the calling tenant's loop_events before a clean re-upload.
+
+    POSTs ``{"confirm":"reset"}`` to the receiver's self-scoped reset route.
+    The receiver deletes only the rows owned by this bearer token's customer,
+    so a re-upload replaces the dataset instead of appending to it.
+    """
+    return post_one(
+        reset_endpoint_for(endpoint), token, {"confirm": "reset"}, timeout=30.0
+    )
+
+
 def load_env() -> tuple[str, str]:
     """Read endpoint+token from .env (one of the simplest dotenv parsers)."""
     env_path = REPO_ROOT / ".env"
@@ -352,6 +375,7 @@ def load_env() -> tuple[str, str]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    global LIBRARY_VERSION
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
         "--dry-run",
@@ -375,7 +399,21 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Print the first built payload to stdout and exit.",
     )
+    ap.add_argument(
+        "--library-version",
+        default=LIBRARY_VERSION,
+        help=f"library_version to stamp on payloads (default {LIBRARY_VERSION}).",
+    )
+    ap.add_argument(
+        "--reset",
+        action="store_true",
+        help=(
+            "Clear this tenant's loop_events via /v1/aggregate/reset before "
+            "uploading (clear-then-load = idempotent re-upload). No-op under --dry-run."
+        ),
+    )
     args = ap.parse_args(argv)
+    LIBRARY_VERSION = args.library_version
 
     if args.print_first:
         rec = next(iter_trials(limit=1), None)
@@ -392,9 +430,32 @@ def main(argv: list[str] | None = None) -> int:
     trials = list(iter_trials(limit=args.limit))
     print(f"Trials to upload: {len(trials)}")
 
+    # Aggregate the per-trial dollar figures so a --dry-run verifies the
+    # dataset matches the published RESULTS.md headline before anything
+    # touches production. SUM(actual_dollars_saved) is exactly what the
+    # dashboard Spotlight renders, so this is the number to eyeball.
+    total_saved = sum((t.payload.get("actual_dollars_saved") or 0.0) for t in trials)
+    total_spent = sum((t.payload.get("actual_dollars_spent") or 0.0) for t in trials)
+    outcomes: dict[str, int] = {}
+    for t in trials:
+        oc = t.payload["loop"]["outcome"]
+        outcomes[oc] = outcomes.get(oc, 0) + 1
+    print(f"library_version stamped: {LIBRARY_VERSION}")
+    print(f"Sum actual_dollars_saved (= dashboard Spotlight): ${total_saved:,.2f}")
+    print(f"Sum actual_dollars_spent: ${total_spent:,.2f}")
+    print(f"Outcomes: {outcomes}")
+
     if args.dry_run:
-        print("[dry-run] skipping POSTs.")
+        print("[dry-run] skipping reset + POSTs.")
         return 0
+
+    if args.reset:
+        print("Resetting tenant before upload (clear-then-load)...")
+        status, body = reset_tenant(endpoint, token)
+        if not (200 <= status < 300):
+            print(f"  reset FAILED: status={status} body={body[:200]}")
+            return 3
+        print(f"  reset ok: {body}")
 
     started = time.time()
     sent = 0
