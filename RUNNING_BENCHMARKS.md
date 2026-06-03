@@ -183,3 +183,37 @@ wc -l data/results/run.json.partial.jsonl ; stat -f "%Sm" data/results/run.json.
 ```
 
 **If it dies:** re-run step 4 verbatim. It resumes from the checkpoint. Don't panic, don't restart from zero.
+
+---
+
+## 9. Refreshing the public dashboard after a re-run
+
+`dashboard.loopgain.ai/benchmark` is **data-driven** from the receiver's public bench tenant
+(`cust_7931de9f766452ac`) — the Spotlight is `SUM(actual_dollars_saved)` over that tenant's
+`loop_events`. After a bench re-run you refresh it by re-uploading; there is no dashboard code or
+copy to edit.
+
+Ingestion is **append-only**, so use the idempotent `--reset` (clear-then-load) — a naive re-run
+*doubles* the totals.
+
+```bash
+cd /Users/fitzy/Developer/cascade-systems/loopgain-bench
+# 1. dry-run FIRST (no writes) — confirm count + $ match RESULTS.md:
+.venv/bin/python bench/upload_to_dashboard.py --dry-run
+#    -> Trials 2000 / Sum saved $25.11 / spent $1.94 / outcomes match
+# 2. live reset + reupload — BACKGROUND it (~6-13 min, rate-limited ~3/s):
+nohup .venv/bin/python bench/upload_to_dashboard.py --reset > /tmp/lg_reupload.log 2>&1 &
+# 3. verify (unauthenticated):
+curl -s "https://telemetry.loopgain.ai/v1/public/benchmark/stats?cb=$RANDOM" \
+  | python3 -c "import sys,json;t=json.load(sys.stdin)['totals'];print(t['event_count'],t['total_actual_dollars_saved'])"
+#    -> 2000  25.11
+```
+
+`--reset` POSTs `{"confirm":"reset"}` to the receiver's self-scoped `POST /v1/aggregate/reset`
+(deletes only the bench tenant's own rows). `--library-version` (default `0.4.0`) stamps the payloads.
+
+**Gotcha — reset read-timeout:** deleting ~2,000 rows on D1 can exceed the client read timeout
+while the DELETE *still completes server-side*, leaving the tenant empty and the upload aborted
+(`reset FAILED: status=-1 TimeoutError`). The timeout is now 120s, but if it still aborts: the
+tenant is already empty, so just re-run the uploader **without `--reset`** (append-to-empty =
+exactly 2000). Always check `event_count` after.

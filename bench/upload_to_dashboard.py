@@ -344,8 +344,12 @@ def reset_tenant(endpoint: str, token: str) -> tuple[int, str]:
     The receiver deletes only the rows owned by this bearer token's customer,
     so a re-upload replaces the dataset instead of appending to it.
     """
+    # Generous read timeout: deleting a full bench tenant (~2,000 rows) on D1
+    # can take well over the default 10s. A shorter timeout can read-time-out on
+    # the client while the DELETE still completes server-side, leaving an empty
+    # tenant and an aborted upload — so wait long enough to see the response.
     return post_one(
-        reset_endpoint_for(endpoint), token, {"confirm": "reset"}, timeout=30.0
+        reset_endpoint_for(endpoint), token, {"confirm": "reset"}, timeout=120.0
     )
 
 
