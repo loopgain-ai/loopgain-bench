@@ -250,13 +250,16 @@ def chart_4_band_emissions(trials: list[dict]) -> None:
     order = ["TARGET_MET", "FAST_CONVERGE", "CONVERGING", "STALLING", "OSCILLATING", "DIVERGING"]
     values = [states.get(b, 0) for b in order]
     fig, ax = plt.subplots(figsize=(9, 4.5))
+    # Canonical LoopGain band palette (matches the product UI / landing —
+    # dashboard src/lib/bands.ts BAND_COLOR + tokens.css). TARGET_MET isn't a
+    # band (it's the terminal success outcome), so it keeps a neutral blue.
     color_map = {
         "TARGET_MET": "#5DA5DA",
-        "FAST_CONVERGE": "#60BD68",
-        "CONVERGING": "#FAA43A",
-        "STALLING": "#F17CB0",
-        "OSCILLATING": "#B276B2",
-        "DIVERGING": "#F15854",
+        "FAST_CONVERGE": "#22D3A5",  # --band-fast
+        "CONVERGING": "#4ADE80",     # --band-conv
+        "STALLING": "#F5C451",       # --band-stall
+        "OSCILLATING": "#F97373",    # --band-osc
+        "DIVERGING": "#E0436B",      # --band-div
     }
     bars = ax.bar(order, values, color=[color_map[b] for b in order])
     for bar, v in zip(bars, values):
