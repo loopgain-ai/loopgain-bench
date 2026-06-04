@@ -160,10 +160,13 @@ def trial_to_payload(
         profile_summary = {"min": None, "max": None, "median": None, "samples": 0}
 
     outcome = lg["outcome"]
-    rollback_triggered = outcome in ("oscillating", "diverged")
+    # loopgain 0.4.0: STALLING terminates with best-so-far rollback too (a stuck
+    # loop keeps the best iter it found), so "stalled" is a rollback outcome
+    # alongside oscillating/diverged — not a silent pass-through.
+    rollback_triggered = outcome in ("oscillating", "diverged", "stalled")
 
     # Bench's headline baseline was max_iter=20 (see BENCH_PROTOCOL.md
-    # §Baselines and the landing-page "93.5% cost reduction" claim).
+    # §Baselines and the landing-page "92.8% cost reduction" claim).
     # Per-tenant convention: real customers see vs the library default (10);
     # the bench tenant uses 20 because that's what the bench measured.
     savings_vs_fixed_cap = max(0, 20 - iters)

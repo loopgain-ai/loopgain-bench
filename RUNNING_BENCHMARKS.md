@@ -45,6 +45,17 @@ background processes. It resumes when you next interact.
    **Verified:** a Sonnet n=500 run completed fully unattended this way, surviving multiple Claude-session
    suspends with zero manual resumes. This is the recommended launch method for any long run.
 
+   **For the MAIN bench** (`bench.runner` → `judge` → `analyze`), use the generic local-run helpers
+   `detach_pipeline.py` + `run_pipeline.sh` (repo root): `detach_pipeline.py` is the same `os.setsid()`
+   double-fork but execs an arbitrary command, and `run_pipeline.sh` chains the full registered pipeline
+   and exports the provider keys from `.env` (the ambient shell can carry an empty `ANTHROPIC_API_KEY`,
+   and `bench.judge`/`bench.llm` don't load `.env`). Launch:
+   ```bash
+   .venv/bin/python detach_pipeline.py run_v0.4.0_pipeline.log -- /bin/zsh run_pipeline.sh
+   ```
+   The main `bench.runner` resumes per-CELL only (`--skip-existing`), not per-trial, so detachment is the
+   primary defense here. Proven on the loopgain 0.4.0 re-validation: survived a multi-hour suspend mid-run.
+
 3. **`caffeinate` (insurance, NOT the fix).** Optional wake assertion:
    ```bash
    nohup caffeinate -dimsu -t 7200 > /tmp/caffeinate.log 2>&1 &   # prevent display/idle/system sleep
