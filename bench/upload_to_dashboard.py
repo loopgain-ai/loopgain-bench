@@ -203,6 +203,9 @@ def trial_to_payload(
             "savings_vs_fixed_cap": savings_vs_fixed_cap,
             "convergence_profile_summary": profile_summary,
             "rollback_triggered": rollback_triggered,
+            # v3.4: 0-based index of the lowest-error iteration (Iteration Waste
+            # panel). The bench records it per condition; LG is what we upload.
+            "best_index": lg.get("best_index"),
             "first_eta_prediction": None,
             "first_eta_at_iteration": None,
         },
