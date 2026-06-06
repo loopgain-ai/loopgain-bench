@@ -9,7 +9,7 @@ Charts produced:
   3. savings_by_segment.png   — LG savings within each LG-outcome segment
   4. band_emissions.png       — band emission counts (highlights CONVERGING/STALLING)
   5. lead_time_histogram.png  — for B20-divergent trials, LG first-warn-iter
-  6. hero_seed34.png          — error-vs-iter for the DM screenshot trial
+  6. best_distribution.png    — where the best output lands (aggregate, all trials)
 """
 
 from __future__ import annotations
@@ -318,48 +318,56 @@ def chart_5_lead_time_histogram(trials: list[dict]) -> None:
     _save(OUT / "lead_time_histogram.png")
 
 
-def chart_6_hero_seed34(trials: list[dict]) -> None:
-    """Visual hero: a found-then-degraded W1 trial. seed-34 (LangGraph/Haiku)
-    is the standing illustration — LG stops early with the correct answer while
-    max_iter=20 finds it, then degrades back to broken. All annotations are
-    DERIVED from the trial's recorded trajectory so this never goes stale across
-    re-runs (the exact stop/find/final iters vary with stochastic model output).
+def chart_6_best_distribution(trials: list[dict]) -> None:
+    """Aggregate hero: where the best output lands under a fixed cap, ALL trials.
+
+    Replaces the old single-trial seed-34 figure. A single trial drawn as two
+    independent runs (LG's rollout vs B20's rollout) can't isolate the stop rule
+    from run-to-run model variance — that's a confounded per-trial quality claim.
+    The honest benchmark lead is the distribution: across all B20 (max_iter=20)
+    trajectories, ~91% reach their best output on the first attempt, but a real
+    tail spreads all the way out to iteration 20 — so no single static `max_iter`
+    is both cheap and safe. Numbers mirror the landing/benchmark `aggregate`
+    provenance and are pinned by loopgain-verify `pub.bestdist_aggregate`.
     """
-    hero = next(t for t in trials if t["trial_id"] == "w1-codegen-langgraph-claude-haiku-4-5-seed34")
-    lg_eh = hero["conditions"]["LG"]["error_history"]
-    b20_eh = hero["conditions"]["B20"]["error_history"]
-    lg_stop = len(lg_eh)                                   # iter LG stopped
-    b20_first0 = next((i + 1 for i, e in enumerate(b20_eh) if e == 0), None)  # iter B20 first found it
-    b20_final = b20_eh[-1]
-    prob = (hero.get("trial_metadata") or {}).get("problem_name", "")
-    title_sfx = f" ({prob})" if prob else ""
+    itb = [t["conditions"]["B20"]["best_index"] + 1
+           for t in trials
+           if t["conditions"].get("B20", {}).get("best_index") is not None]
+    n = len(itb)
+    counts = [sum(1 for v in itb if v == i) for i in range(1, 21)]
+    at1 = counts[0]
+    pct1 = at1 / n * 100
+    past1 = n - at1
+    pct_past = past1 / n * 100
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(range(1, len(b20_eh) + 1), b20_eh, marker="o", color=BASELINE_COLORS["B20"],
-            label=f"B20 (max_iter=20) — final error = {b20_final:.0f}, broken at iter {len(b20_eh)}")
-    ax.plot(range(1, len(lg_eh) + 1), lg_eh, marker="o", color=LG_COLOR, linewidth=2.5,
-            markersize=10, label=f"LoopGain — converged at iter {lg_stop}, kept correct output")
-    # Mark LG stop
-    ax.scatter([len(lg_eh)], [lg_eh[-1]], s=200, facecolors="none", edgecolors=LG_COLOR,
-               linewidths=2.5, zorder=5)
-    ax.text(len(lg_eh) + 0.3, lg_eh[-1] + 0.5, "LG stops\n(TARGET_MET)", fontsize=10, color=LG_COLOR)
+    ax.bar(range(1, 21), counts, color="#6b7280", width=0.82, zorder=3)
+    ax.set_yscale("log")  # the iter-1 bar dwarfs the tail; log y makes the tail visible
+    for i, c in enumerate(counts):
+        if c > 0:
+            ax.text(i + 1, c * 1.12, str(c), ha="center", va="bottom", fontsize=8, color="#444")
 
-    ax.set_xlabel("Iteration", fontsize=11)
-    ax.set_ylabel("Failing tests (error)", fontsize=11)
-    cost_delta = hero["cost_usd"]["B20"] - hero["cost_usd"]["LG"]
-    found_txt = (f"B20 first found it at iter {b20_first0}, then degraded back to broken"
-                 if b20_first0 else "B20 never settled on the answer")
+    ax.annotate(f"{pct1:.1f}% — best on the first attempt",
+                xy=(1, counts[0]), xytext=(3.2, counts[0] * 0.55),
+                fontsize=11, color=LG_COLOR, fontweight="bold",
+                arrowprops=dict(arrowstyle="->", color=LG_COLOR))
+    ax.annotate(f"{pct_past:.1f}% land later — out to iter 20\n(a low cap would clip these)",
+                xy=(13, max(c for c in counts[6:] if c) ), xytext=(9.5, counts[0] * 0.12),
+                fontsize=10, color="#404040",
+                arrowprops=dict(arrowstyle="->", color="#808080"))
+
+    ax.set_xlabel("Iteration at which the best output appears", fontsize=11)
+    ax.set_ylabel("Trials (log scale)", fontsize=11)
+    ax.set_xticks(range(1, 21))
+    ax.grid(alpha=0.3, axis="y", zorder=0)
     _set_title(
         fig, ax,
-        f"W1 · CodeGen · LangGraph · Haiku 4.5 · seed=34{title_sfx}",
-        f"LoopGain found the answer at iter {lg_stop} and stopped. "
-        f"{found_txt}. ${cost_delta:.4f} saved.",
+        "Where the best output lands — max_iter=20 · all 2,000 trials",
+        "No static cap is both cheap and safe. LoopGain keeps the best on 97.2% of "
+        "trajectories (2.8% false-stop, mean 1.6 iters) — 92.8% less spend.",
     )
-    ax.legend(loc="upper right", fontsize=10)
-    ax.grid(alpha=0.3)
-    ax.set_xticks(range(1, len(b20_eh) + 1))
     plt.tight_layout()
-    _save(OUT / "hero_seed34.png")
+    _save(OUT / "best_distribution.png")
 
 
 def main() -> None:
@@ -377,8 +385,8 @@ def main() -> None:
     print(f"  → {OUT / 'band_emissions.png'}")
     chart_5_lead_time_histogram(trials)
     print(f"  → {OUT / 'lead_time_histogram.png'}")
-    chart_6_hero_seed34(trials)
-    print(f"  → {OUT / 'hero_seed34.png'}")
+    chart_6_best_distribution(trials)
+    print(f"  → {OUT / 'best_distribution.png'}")
 
 
 if __name__ == "__main__":

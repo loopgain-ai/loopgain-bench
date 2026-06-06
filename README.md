@@ -2,9 +2,9 @@
 
 Reproducible benchmark for **[LoopGain](https://loopgain.ai)** — measures cost, iterations, wall-clock, and output quality on real agentic loops, baseline-vs-LoopGain, across the major Python agent frameworks.
 
-> **Status: REGISTERED RESULTS LANDED (2026-05-25).** Across 2,000 real-API trials over 10 cells, LoopGain reduced median API spend by **93.5% vs `max_iter=20`**, reduced median wall-clock by **~10×**, preserved output quality on natural-distribution workloads, and *improved* output quality on engineered-failure workloads. **Zero of six kill criteria fired.** Full writeup: [`RESULTS.md`](./RESULTS.md). Pre-registration: [`BENCH_PROTOCOL.md`](./BENCH_PROTOCOL.md) (locked 2026-05-21, before any cell beyond the n=10 dry-run captured real data).
+> **Status: REGISTERED RESULTS LANDED (2026-05-25; re-validated on loopgain v0.4.0, 2026-06-03).** Across 2,000 real-API trials over 10 cells, LoopGain reduced median API spend by **92.8% vs `max_iter=20`**, reduced median wall-clock by **~15×**, preserved output quality on natural-distribution workloads, and *improved* output quality on engineered-failure workloads. **Zero of six kill criteria fired.** Full writeup: [`RESULTS.md`](./RESULTS.md). Pre-registration: [`BENCH_PROTOCOL.md`](./BENCH_PROTOCOL.md) (locked 2026-05-21, before any cell beyond the n=10 dry-run captured real data).
 
-![Hero trial — max_iter=20 finds the right answer at iteration 8 and degrades back to broken code by iteration 20; LoopGain detects TARGET_MET at iteration 2 and stops with the working code](data/results/charts/hero_seed34.png)
+![Where the best output lands across all 2,000 max_iter=20 trials: 91.2% reach their best output on the first attempt, but a real tail spreads out to iteration 20 — so no single static max_iter is both cheap and safe. LoopGain keeps the best on 97.2% of trajectories (2.8% false-stop) at a mean of 1.6 iterations.](data/results/charts/best_distribution.png)
 
 **See the bench data live in the dashboard →** [dashboard.loopgain.ai/benchmark](https://dashboard.loopgain.ai/benchmark)
 
@@ -14,11 +14,11 @@ Across the full registered run (10 cells × n=200 paired trials = 8,000 loop run
 
 | | B5 | B10 | **B20** | **LoopGain** |
 |---|---:|---:|---:|---:|
-| Total API spend | $7.00 | $13.97 | **$27.61** | **$1.80** |
-| Median wall-clock per trial | 26.2s | 49.1s | **93.0s** | **9.8s** |
-| Implied savings vs B20 | — | — | — | **93.5% cost / 89.5% time** |
+| Total API spend | $6.83 | $13.65 | **$27.05** | **$1.94** |
+| Median wall-clock per trial | 7.2s | 14.8s | **30.9s** | **2.1s** |
+| Implied savings vs B20 | — | — | — | **92.8% cost / 93.3% time** |
 
-![Total API spend by condition across all 10 cells × n=200 trials — $27.61 (B20) vs $1.80 (LoopGain)](data/results/charts/cost_by_condition.png)
+![Total API spend by condition across all 10 cells × n=200 trials — $27.05 (B20) vs $1.94 (LoopGain)](data/results/charts/cost_by_condition.png)
 
 **Quality** — three-layer story (full numbers in [`RESULTS.md` §Three findings](./RESULTS.md#three-product-axes-four-findings-to-surface-honestly)):
 - **Preserved** on natural-distribution workloads (W1–W2 judge winrate 0.55–0.62 with CI excluding null on most cells; W3 cells 0.497–0.517 tie-dominated, preservation-by-construction since both LG and B20 produce the same correct tool call ~90% of the time).
