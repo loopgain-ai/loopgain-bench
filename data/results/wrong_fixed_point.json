@@ -1,0 +1,120 @@
+{
+  "_provenance": "aggregate",
+  "_description": "Wrong-fixed-point rate on W1: converged (TARGET_MET) LG outputs that fail the full MBPP+ oracle (value-equality, order-normalized) despite passing the loop's 8-sample proxy. Recompute-only, no model spend.",
+  "loopgain_version_under_test": "0.4.0",
+  "headline_rate_pct": 4.5,
+  "clean_denominator": 355,
+  "pooled": {
+    "converged": 357,
+    "reeval": 357,
+    "passed_full": 339,
+    "wfp_hardened": 16,
+    "order_only": 0,
+    "no_oracle": 0,
+    "indeterminate": 2
+  },
+  "per_cell": {
+    "w1-codegen-claude-agent-sdk-claude-haiku-4-5-registered.jsonl": {
+      "converged": 181,
+      "reeval": 181,
+      "passed_full": 172,
+      "wfp_hardened": 8,
+      "order_only": 0,
+      "no_oracle": 0,
+      "indeterminate": 1,
+      "examples": [
+        {
+          "problem": "Mbpp/294",
+          "norm_fail": 1,
+          "n_total": 111
+        },
+        {
+          "problem": "Mbpp/771",
+          "norm_fail": 1,
+          "n_total": 106
+        },
+        {
+          "problem": "Mbpp/757",
+          "norm_fail": 2,
+          "n_total": 113
+        },
+        {
+          "problem": "Mbpp/622",
+          "norm_fail": 1,
+          "n_total": 114
+        },
+        {
+          "problem": "Mbpp/626",
+          "norm_fail": 1,
+          "n_total": 108
+        },
+        {
+          "problem": "Mbpp/7",
+          "norm_fail": 3,
+          "n_total": 105
+        },
+        {
+          "problem": "Mbpp/113",
+          "norm_fail": 4,
+          "n_total": 124
+        },
+        {
+          "problem": "Mbpp/576",
+          "norm_fail": 4,
+          "n_total": 113
+        }
+      ]
+    },
+    "w1-codegen-langgraph-claude-haiku-4-5-registered.jsonl": {
+      "converged": 176,
+      "reeval": 176,
+      "passed_full": 167,
+      "wfp_hardened": 8,
+      "order_only": 0,
+      "no_oracle": 0,
+      "indeterminate": 1,
+      "examples": [
+        {
+          "problem": "Mbpp/294",
+          "norm_fail": 1,
+          "n_total": 111
+        },
+        {
+          "problem": "Mbpp/771",
+          "norm_fail": 1,
+          "n_total": 106
+        },
+        {
+          "problem": "Mbpp/757",
+          "norm_fail": 2,
+          "n_total": 113
+        },
+        {
+          "problem": "Mbpp/622",
+          "norm_fail": 1,
+          "n_total": 114
+        },
+        {
+          "problem": "Mbpp/7",
+          "norm_fail": 3,
+          "n_total": 105
+        },
+        {
+          "problem": "Mbpp/113",
+          "norm_fail": 4,
+          "n_total": 124
+        },
+        {
+          "problem": "Mbpp/576",
+          "norm_fail": 4,
+          "n_total": 113
+        },
+        {
+          "problem": "Mbpp/398",
+          "norm_fail": 3,
+          "n_total": 108
+        }
+      ]
+    }
+  }
+}
