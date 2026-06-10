@@ -2,7 +2,7 @@
 
 Reproducible benchmark for **[LoopGain](https://loopgain.ai)** — measures cost, iterations, wall-clock, and output quality on real agentic loops, baseline-vs-LoopGain, across the major Python agent frameworks.
 
-> **Status: REGISTERED RESULTS LANDED (2026-05-25; re-validated on loopgain v0.4.0, 2026-06-03).** Across 2,000 real-API trials over 10 cells, LoopGain reduced median API spend by **92.8% vs `max_iter=20`**, reduced median wall-clock by **~15×**, preserved output quality on natural-distribution workloads, and *improved* output quality on engineered-failure workloads. **Zero of six kill criteria fired.** Full writeup: [`RESULTS.md`](./RESULTS.md). Pre-registration: [`BENCH_PROTOCOL.md`](./BENCH_PROTOCOL.md) (locked 2026-05-21, before any cell beyond the n=10 dry-run captured real data).
+> **Status: REGISTERED RESULTS LANDED (2026-05-25; re-validated on loopgain v0.4.0, 2026-06-03).** Across 2,000 real-API trials over 10 cells, LoopGain reduced total API spend by **92.8% vs `max_iter=20`**, reduced median wall-clock by **~15×**, preserved output quality on natural-distribution workloads, and *improved* output quality on engineered-failure workloads. **Zero of six kill criteria fired.** Full writeup: [`RESULTS.md`](./RESULTS.md). Pre-registration: [`BENCH_PROTOCOL.md`](./BENCH_PROTOCOL.md) (locked 2026-05-21, before any cell beyond the n=10 dry-run captured real data).
 
 ![Where the best output lands across all 2,000 max_iter=20 trials: 91.2% reach their best output on the first attempt, but a real tail spreads out to iteration 20 — so no single static max_iter is both cheap and safe. LoopGain keeps the best on 97.2% of trajectories (2.8% false-stop) at a mean of 1.6 iterations.](data/results/charts/best_distribution.png)
 
@@ -21,9 +21,9 @@ Across the full registered run (10 cells × n=200 paired trials = 8,000 loop run
 ![Total API spend by condition across all 10 cells × n=200 trials — $27.05 (B20) vs $1.94 (LoopGain)](data/results/charts/cost_by_condition.png)
 
 **Quality** — three-layer story (full numbers in [`RESULTS.md` §Three findings](./RESULTS.md#three-product-axes-four-findings-to-surface-honestly)):
-- **Preserved** on natural-distribution workloads (W1–W2 judge winrate 0.55–0.62 with CI excluding null on most cells; W3 cells 0.497–0.517 tie-dominated, preservation-by-construction since both LG and B20 produce the same correct tool call ~90% of the time).
-- **Improved** on engineered-failure workloads (W5 winrate 0.88–0.93 across three adapters; best-so-far rollback returns the iter that worked rather than the iter that degraded).
-- **Aggregate** weighted-average pairwise preference for LG vs B20 across 1,800 judge comparisons: **0.681** — over two-thirds.
+- **Preserved** on natural-distribution workloads (W1–W4 judge winrate 0.50–0.63 with CI excluding null on most cells with clear signal; W3 cells 0.500–0.510 tie-dominated, preservation-by-construction since both LG and B20 produce the same correct tool call ~90% of the time).
+- **Improved** on engineered-failure workloads (W5 winrate 0.92–0.95 across three adapters; best-so-far rollback returns the iter that worked rather than the iter that degraded).
+- **Aggregate** weighted-average pairwise preference for LG vs B20 across 1,800 judge comparisons: **0.678** — over two-thirds.
 
 **Kill criteria** — none fired. Two pre-registered floors were missed without firing kill: H-EARLYWARN median lead (2 iters observed vs ≥ 3 predicted; kill at < 1) and H-FRAMEWORK-PARITY W1 spread (5.8 pp observed vs ≤ 5 pp predicted; kill at > 15 pp). Both disclosed honestly in [`RESULTS.md` §Limitations](./RESULTS.md#limitations-to-disclose).
 
@@ -53,7 +53,7 @@ Four conditions, **paired within each trial** (same prompt, same model, same see
 - `B5` — `max_iter=5` (LangChain / CrewAI common default)
 - `B10` — `max_iter=10` (LangGraph default)
 - `B20` — `max_iter=20` (production-cautious; ground-truth oracle)
-- `LG` — LoopGain v0.2.0, default thresholds
+- `LG` — LoopGain v0.2.0 at registration, default thresholds (registered numbers re-validated on v0.4.0, 2026-06-03 — identical decisions; see [`RESULTS.md`](./RESULTS.md))
 
 10 measurement cells (workload × framework). `n = 200` paired trials per cell. **8,000 total loop runs + 1,800 pairwise judge comparisons.**
 

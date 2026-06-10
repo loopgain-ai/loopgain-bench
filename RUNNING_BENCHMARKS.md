@@ -208,7 +208,7 @@ Ingestion is **append-only**, so use the idempotent `--reset` (clear-then-load) 
 *doubles* the totals.
 
 ```bash
-cd /Users/fitzy/Developer/cascade-systems/loopgain-bench
+cd loopgain-bench
 # 1. dry-run FIRST (no writes) — confirm count + $ match RESULTS.md:
 .venv/bin/python bench/upload_to_dashboard.py --dry-run
 #    -> Trials 2000 / Sum saved $25.11 / spent $1.94 / outcomes match

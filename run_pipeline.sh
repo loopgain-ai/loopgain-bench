@@ -10,7 +10,7 @@
 # both authenticate. cut -f2- preserves any '=' inside the value; keys are set
 # via command substitution so they never appear in argv / ps output.
 set -e
-cd /Users/fitzy/Developer/cascade-systems/loopgain-bench || exit 1
+cd "$(dirname "$0")" || exit 1
 
 export ANTHROPIC_API_KEY="$(grep '^ANTHROPIC_API_KEY=' .env | cut -d'=' -f2-)"
 export OPENAI_API_KEY="$(grep '^OPENAI_API_KEY=' .env | cut -d'=' -f2-)"
