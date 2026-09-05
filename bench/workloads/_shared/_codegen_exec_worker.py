@@ -1,27 +1,11 @@
-"""Subprocess worker: execute model-generated candidate code + assertions in
-process ISOLATION so a pathological GIL-holding compile() can be hard-killed by
-the parent (subprocess timeout -> SIGKILL) instead of wedging the bench runner.
+"""Candidate evaluator, launched only through the Docker sandbox backend.
 
-WHY THIS EXISTS
----------------
-The previous in-process guard (`_with_timeout`: daemon thread + join(timeout))
-cannot interrupt a `compile()` of a pathologically-nested expression:
-`_PyAST_Compile`/`_PySymtable_Build` is one long C call that holds the GIL and
-never yields. `join()` returns (caller thinks it timed out) but the leaked
-daemon thread keeps the GIL forever and starves every other thread in the
-process. A single bad W1 trial froze the entire registered run. Per
-RUNNING_BENCHMARKS.md §6 ("execute model-generated code sandboxed") and §2.2
-("hard wall-clock bound"), candidate code now runs in this child process and
-the parent enforces a real wall-clock kill that a held GIL cannot evade.
+The container is the security boundary. Inner thread deadlines give assertion
+feedback; the parent enforces output/resource limits and removes the container
+on every exit, including a GIL-holding candidate or surviving descendants.
 
-Inner semantics are IDENTICAL to the old codegen_base._run_tests (3s exec
-budget; 1s per assertion, 7s total) so pass/fail counts are unchanged for
-well-behaved code. The daemon-thread guards here still give per-assertion
-granularity for the common case; the parent's outer SIGKILL is the backstop
-for the GIL-holding case the inner guards cannot catch.
-
-Protocol: reads JSON {"code","entry_point","tests"} on stdin, writes JSON
-{"n_passing","n_total","failed"} on stdout. Stdlib only.
+Protocol: stdin JSON {"code","entry_point","tests"}; stdout JSON
+{"n_passing","n_total","failed"}. Stdlib only.
 """
 from __future__ import annotations
 
@@ -31,10 +15,7 @@ import sys
 import threading
 import time
 
-# Python's exec/eval builtins, hoisted to locals. This worker IS the sandbox:
-# it runs untrusted model-generated code on purpose, isolated in a child process
-# the parent can SIGKILL. (Not shell exec / command-injection — this is the
-# Python `exec`/`eval` interpreter primitive, the documented bench design.)
+# Interpreter primitives intentionally execute candidates inside the container.
 _run_code = builtins.exec
 _eval_expr = builtins.eval
 

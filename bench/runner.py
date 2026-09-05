@@ -41,6 +41,8 @@ except ImportError:
 
 from loopgain import LoopGain  # type: ignore
 
+from .cancellation import RunAbort, run_scope
+from .workloads._shared.sandbox import SandboxUnavailable
 from . import __version__
 from .llm import Completion, MockLLMClient, client_for_model
 from .pricing import cost_for, snapshot_metadata
@@ -58,8 +60,45 @@ except Exception:  # noqa: BLE001 — never let version lookup break a run
     LOOPGAIN_VERSION = "unknown"
 
 
-def _run_baseline(workload: Workload, trial: TrialInput, max_iter: int, llm) -> dict:
-    """Run the fixed-cap baseline. Always runs to cap; keeps LAST output."""
+def _parallel(function, items, workers, abort):
+    """Bound scheduling and cancel queued work on fatal sandbox failures.
+
+    Already in-flight calls finish and clean up; shared checks prevent their
+    next iteration/model call. Never queue the entire remaining benchmark.
+    """
+    iterator = iter(items)
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
+    pending = set()
+    def submit_one():
+        abort.check()
+        try:
+            item = next(iterator)
+        except StopIteration:
+            return
+        pending.add(executor.submit(function, item))
+    try:
+        for _ in range(workers):
+            submit_one()
+        while pending:
+            done, pending = concurrent.futures.wait(pending, return_when=concurrent.futures.FIRST_COMPLETED)
+            # Observe all completed failures before scheduling replacements.
+            results = [future.result() for future in done]
+            abort.check()
+            yield from results
+            for _ in done:
+                submit_one()
+    except SandboxUnavailable:
+        abort.stop()
+        raise
+    finally:
+        for future in pending:
+            future.cancel()
+        executor.shutdown(wait=True, cancel_futures=True)
+
+
+def _run_baseline(workload: Workload, trial: TrialInput, max_iter: int, llm, abort=None) -> dict:
+    """Run the fixed-cap baseline. Runs to cap unless infrastructure fails; keeps LAST output."""
+    abort = abort or RunAbort()
     completions: list[Completion] = []
     errors: list[float] = []
     output: Optional[str] = None
@@ -67,12 +106,16 @@ def _run_baseline(workload: Workload, trial: TrialInput, max_iter: int, llm) -> 
     failures: list[int] = []
     t0 = time.time()
     for i in range(1, max_iter + 1):
+        abort.check()
         try:
             outcome = workload.run_iteration(trial, output, i, llm)
             output = outcome.output
             completions.append(outcome.completion)
             errors.append(outcome.error)
             iter_outputs.append(output)
+        except SandboxUnavailable:
+            abort.stop()
+            raise
         except Exception as exc:  # noqa: BLE001 — per lockdown #5
             failures.append(i)
             errors.append(WORST_CASE_ERROR)
@@ -93,12 +136,13 @@ def _run_baseline(workload: Workload, trial: TrialInput, max_iter: int, llm) -> 
     }
 
 
-def _run_loopgain(workload: Workload, trial: TrialInput, llm) -> dict:
+def _run_loopgain(workload: Workload, trial: TrialInput, llm, abort=None) -> dict:
     """Run the LoopGain condition. Default thresholds. Best-so-far rollback."""
     lg = LoopGain(
         target_error=workload.target_error,
         max_iterations=20,  # ceiling; LoopGain stops earlier on band detection
     )
+    abort = abort or RunAbort()
     completions: list[Completion] = []
     errors: list[float] = []
     state_history: list[str] = []
@@ -108,6 +152,7 @@ def _run_loopgain(workload: Workload, trial: TrialInput, llm) -> dict:
     t0 = time.time()
     while lg.should_continue():
         i = lg.result.iterations_used + 1
+        abort.check()
         try:
             outcome = workload.run_iteration(trial, output, i, llm)
             output = outcome.output
@@ -116,6 +161,9 @@ def _run_loopgain(workload: Workload, trial: TrialInput, llm) -> dict:
             iter_outputs.append(output)
             state = lg.observe(outcome.error, output=output)
             state_history.append(state)
+        except SandboxUnavailable:
+            abort.stop()
+            raise
         except Exception as exc:  # noqa: BLE001
             failures.append(i)
             errors.append(WORST_CASE_ERROR)
@@ -146,7 +194,7 @@ def _run_loopgain(workload: Workload, trial: TrialInput, llm) -> dict:
     }
 
 
-def run_trial(workload: Workload, seed: int) -> dict:
+def run_trial(workload: Workload, seed: int, abort=None) -> dict:
     """Run all four conditions for one trial. Returns a dict ready for JSONL.
 
     The four conditions (B5/B10/B20/LG) are independent — same seed, same
@@ -162,17 +210,25 @@ def run_trial(workload: Workload, seed: int) -> dict:
 
     Per Lockdown #5: a per-condition exception is captured and re-raised as
     a TrialError that the outer run_cell handles as a trial-level failure;
-    no condition is silently dropped.
+    no condition is silently dropped. SandboxUnavailable instead aborts the
+    complete run and cooperatively stops sibling work.
     """
+    abort = abort or RunAbort()
+    abort.check()
     trial = workload.generate_trial(seed)
 
     def _exec_condition(condition: str) -> tuple[str, dict, float]:
+        with run_scope(abort):
+            return _condition(condition)
+
+    def _condition(condition):
+        abort.check()
         llm = client_for_model(workload.model, seed=seed)
         if condition == "LG":
-            result = _run_loopgain(workload, trial, llm)
+            result = _run_loopgain(workload, trial, llm, abort)
         else:
             max_iter = int(condition[1:])
-            result = _run_baseline(workload, trial, max_iter, llm)
+            result = _run_baseline(workload, trial, max_iter, llm, abort)
         cost = cost_for(
             workload.model,
             input_tokens=result["input_tokens"],
@@ -182,12 +238,9 @@ def run_trial(workload: Workload, seed: int) -> dict:
 
     conditions: dict[str, dict] = {}
     cost_usd: dict[str, float] = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
-        futures = [ex.submit(_exec_condition, c) for c in ("B5", "B10", "B20", "LG")]
-        for fut in concurrent.futures.as_completed(futures):
-            cond, result, cost = fut.result()  # propagates any condition-level exception
-            conditions[cond] = result
-            cost_usd[cond] = cost
+    for cond, result, cost in _parallel(_exec_condition, ("B5", "B10", "B20", "LG"), 4, abort):
+        conditions[cond] = result
+        cost_usd[cond] = cost
 
     return {
         "trial_id": f"{workload.id}-seed{seed}",
@@ -203,7 +256,7 @@ def run_trial(workload: Workload, seed: int) -> dict:
     }
 
 
-def run_cell(workload: Workload, n: int, tag: str = "untagged", *, trials_parallel: int = 1) -> Path:
+def run_cell(workload: Workload, n: int, tag: str = "untagged", *, trials_parallel: int = 1, run_abort=None) -> Path:
     """Run n trials of one cell. Writes JSONL incrementally.
 
     trials_parallel: number of trials to execute concurrently within the cell.
@@ -212,6 +265,8 @@ def run_cell(workload: Workload, n: int, tag: str = "untagged", *, trials_parall
     over trials within the same cell. Each trial's JSONL line is written
     under a file lock to keep the JSONL well-formed.
     """
+    run_abort = run_abort or RunAbort()
+    run_abort.check()
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     out_path = RAW_DIR / f"{workload.id}-{tag}.jsonl"
 
@@ -239,11 +294,13 @@ def run_cell(workload: Workload, n: int, tag: str = "untagged", *, trials_parall
     TRIPWIRE_AFTER = 5  # check after this many trials land
 
     def _process_one(seed: int) -> None:
+        run_abort.check()
         if abort["flag"]:
             return  # tripwire fired; stop accepting work
         try:
-            trial_result = run_trial(workload, seed)
+            trial_result = run_trial(workload, seed, run_abort)
             with write_lock:
+                run_abort.check()
                 if abort["flag"]:
                     return
                 with out_path.open("a") as f:
@@ -276,6 +333,9 @@ def run_cell(workload: Workload, n: int, tag: str = "untagged", *, trials_parall
                             f"adapter, broken framework_invoke, or per-iteration exception "
                             f"swallowing all LLM calls). Stopping cell.\n"
                         )
+        except SandboxUnavailable:
+            run_abort.stop()
+            raise
         except Exception as exc:  # noqa: BLE001 — log + continue per lockdown #5
             err_record = {
                 "_trial_error": True,
@@ -295,8 +355,7 @@ def run_cell(workload: Workload, n: int, tag: str = "untagged", *, trials_parall
                 break
             _process_one(seed)
     else:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=trials_parallel) as ex:
-            list(ex.map(_process_one, range(n)))
+        list(_parallel(_process_one, range(n), trials_parallel, run_abort))
 
     if abort["flag"]:
         print(f"== ABORTED ({completed['n']} trials landed; tripwire fired). raw → {out_path}")
@@ -358,9 +417,15 @@ def main() -> None:
     )
     args = p.parse_args()
 
+    run_abort = RunAbort()
+
     def _run_one_cell(name: str) -> None:
+        run_abort.check()
         try:
             workload = _load_workload(name)
+        except SandboxUnavailable:
+            run_abort.stop()
+            raise
         except Exception as exc:  # noqa: BLE001
             sys.stderr.write(f"skipping {name}: {exc!r}\n")
             return
@@ -368,7 +433,7 @@ def main() -> None:
         if args.skip_existing and _is_cell_complete(out_path, args.n):
             print(f"== {workload.id} ({args.tag}) — already complete (n={args.n}), skipping")
             return
-        run_cell(workload, args.n, args.tag, trials_parallel=args.trials_parallel)
+        run_cell(workload, args.n, args.tag, trials_parallel=args.trials_parallel, run_abort=run_abort)
 
     if args.all_cells:
         wl_dir = Path(__file__).parent / "workloads"
@@ -381,8 +446,7 @@ def main() -> None:
             for name in names:
                 _run_one_cell(name)
         else:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=args.cells_parallel) as ex:
-                list(ex.map(_run_one_cell, names))
+            list(_parallel(_run_one_cell, names, args.cells_parallel, run_abort))
     else:
         if not args.workload:
             p.error("either --workload or --all-cells required")

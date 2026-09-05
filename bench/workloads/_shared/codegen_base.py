@@ -12,19 +12,18 @@ Programmatic quality: pass rate (n_passing / n_total) in [0, 1].
 from __future__ import annotations
 
 import hashlib
-import json
 import random
 import re
-import subprocess
-import sys
 from pathlib import Path
 from typing import Optional
 
+from ...cancellation import check_run_active
 from ...llm import Completion
 from ...workload import IterationOutcome, TrialInput, Workload
 from . import in_mock_mode
 from .codegen_problems import PROBLEMS
 from .framework_invoke import invoke
+from .sandbox import SandboxExecutionError, ensure_available, execute_worker
 
 
 def _extract_code(text: str) -> str:
@@ -37,56 +36,21 @@ def _extract_code(text: str) -> str:
     return (text or "").strip()
 
 
-# Candidate-code execution runs in an ISOLATED subprocess (see
-# _codegen_exec_worker.py). The prior in-process guard (daemon thread +
-# join(timeout)) could not interrupt a GIL-holding compile of a pathological
-# expression: a single bad W1 trial leaked a thread that held the GIL forever
-# and froze the entire registered run. Process isolation lets the parent
-# enforce a real wall-clock SIGKILL — per RUNNING_BENCHMARKS.md §2.2/§6.
-_EXEC_WORKER = str(Path(__file__).with_name("_codegen_exec_worker.py"))
-# Outer wall-clock backstop, comfortably above the worker's inner budgets
-# (3s exec + 7s assertions = 10s) plus spawn/scheduling slack. When it fires,
-# subprocess.run SIGKILLs the worker — the kill a held GIL cannot evade.
+# All generated code executes inside the mandatory Docker sandbox.
+_EXEC_WORKER = Path(__file__).with_name("_codegen_exec_worker.py")
 _EXEC_HARD_TIMEOUT_S = 25.0
 
 
 def _run_tests(code: str, entry_point: str, tests: list[str]) -> tuple[int, int, list[str]]:
-    """Run candidate code + assertions in an ISOLATED, killable subprocess.
-
-    Delegates to _codegen_exec_worker.py. Inner budgets (3s exec, 1s/assertion,
-    7s total) and pass/fail semantics are IDENTICAL to the old in-process logic;
-    isolation only adds a hard outer wall-clock kill so a pathological
-    GIL-holding compile can no longer freeze the bench runner. Returns
-    (n_passing, n_total, failed_messages); any worker timeout/crash counts as
-    ALL tests failing — same as the prior <exec timeout> path.
-
-    Sandbox isolation is process-level (fresh interpreter, fresh namespace) but
-    NOT filesystem/network isolation — we rely on Anthropic's RLHF to not have
-    the model write destructive code for these algorithmic toys. Documented as a
-    limitation in the writeup.
-    """
-    payload = json.dumps({"code": code, "entry_point": entry_point, "tests": list(tests)})
+    """Evaluate candidates without exposing host files, network, or credentials."""
     try:
-        proc = subprocess.run(
-            [sys.executable, _EXEC_WORKER],
-            input=payload,
-            capture_output=True,
-            text=True,
-            timeout=_EXEC_HARD_TIMEOUT_S,
+        res = execute_worker(
+            _EXEC_WORKER, {"code": code, "entry_point": entry_point, "tests": list(tests)},
+            _EXEC_HARD_TIMEOUT_S,
         )
-    except subprocess.TimeoutExpired:
-        # Worker wedged on a GIL-holding compile; subprocess.run SIGKILLed it.
-        return 0, len(tests), ["<exec hard-timeout>"] * len(tests)
-    except Exception as exc:  # noqa: BLE001 — never let a harness hiccup crash the trial
-        return 0, len(tests), [f"<worker spawn error: {exc!r}>"] * len(tests)
-    if proc.returncode != 0 or not proc.stdout.strip():
-        snippet = (proc.stderr or "").strip()[:200]
-        return 0, len(tests), [f"<worker crash rc={proc.returncode}: {snippet!r}>"] * len(tests)
-    try:
-        res = json.loads(proc.stdout)
-    except json.JSONDecodeError:
-        return 0, len(tests), ["<worker bad output>"] * len(tests)
-    return int(res["n_passing"]), int(res["n_total"]), list(res["failed"])
+        return int(res["n_passing"]), int(res["n_total"]), list(res["failed"])
+    except (SandboxExecutionError, KeyError, TypeError, ValueError) as exc:
+        return 0, len(tests), [f"<sandbox execution failed: {exc}>"] * len(tests)
 
 
 class CodegenWorkload(Workload):
@@ -160,6 +124,9 @@ class CodegenWorkload(Workload):
         iteration: int,
         llm,
     ) -> IterationOutcome:
+        # Fail before invoke can contact a model, including the first iteration.
+        check_run_active()
+        ensure_available()
         spec = trial.initial_state["spec"]
         entry_point = trial.initial_state["entry_point"]
         tests = trial.initial_state["tests"]
@@ -187,6 +154,7 @@ class CodegenWorkload(Workload):
                 f"Spec for reference:\n```python\n{spec}```"
             )
 
+        check_run_active()
         comp = invoke(self.framework, llm, prompt, max_tokens=600)
         text = comp.text or ""
         code = _extract_code(text)

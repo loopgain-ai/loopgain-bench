@@ -19,7 +19,7 @@ strict-but-order-only failures are reported separately as an artifact class (the
 earlier repr-based version over-counted these, e.g. Mbpp/255 combinations).
 
 Recompute-only: executes model code already produced during the bench, in an
-isolated subprocess. NO model/API spend. Emits data/results/wrong_fixed_point.json.
+isolated Docker container. NO model/API spend. Emits data/results/wrong_fixed_point.json.
 
 Run with the bench venv (evalplus + MbppPlus cache):
     cd loopgain-bench && .venv/bin/python analysis/wrong_fixed_point_w1.py
@@ -28,12 +28,14 @@ from __future__ import annotations
 
 import json
 import re
-import subprocess
 import sys
 from pathlib import Path
 
 BENCH = Path(__file__).resolve().parent.parent
-WORKER = str(BENCH / "bench/workloads/_shared/_wfp_exec_worker.py")
+sys.path.insert(0, str(BENCH))
+from bench.workloads._shared.sandbox import SandboxExecutionError, ensure_available, execute_worker
+
+WORKER = BENCH / "bench/workloads/_shared/_wfp_exec_worker.py"
 OUT = BENCH / "data/results/wrong_fixed_point.json"
 W1_FILES = sorted((BENCH / "data/raw").glob("w1-codegen-*-registered.jsonl"))
 
@@ -72,18 +74,17 @@ def full_oracle_cases(problem):
 
 
 def run_worker(code, entry_point, cases):
-    payload = json.dumps({"code": code, "entry_point": entry_point,
-                          "cases": [[a, e] for a, e in cases]})
+    payload = {"code": code, "entry_point": entry_point,
+               "cases": [[a, e] for a, e in cases]}
     try:
-        proc = subprocess.run([sys.executable, WORKER], input=payload,
-                              capture_output=True, text=True, timeout=40.0)
-        return json.loads(proc.stdout)
-    except Exception:
+        return execute_worker(WORKER, payload, 40.0)
+    except SandboxExecutionError:
         return {"n_total": len(cases), "strict_fail": len(cases),
                 "norm_fail": len(cases), "error": "worker_crash"}
 
 
 def main():
+    ensure_available()
     sys.set_int_max_str_digits(1_000_000)
     from evalplus.data import get_mbpp_plus
     mbpp = get_mbpp_plus()
