@@ -162,7 +162,11 @@ is a separate operator action: this backend never pulls or builds images. It
 resolves the local image to an immutable ID and uses `--pull=never`. No host
 execution fallback exists, including in mock mode. W1 probes the actual backend
 before each iteration's model request; infrastructure or cleanup failure raises
-`SandboxUnavailable` and must be resolved before retrying.
+`SandboxUnavailable` and must be resolved before retrying. The runner propagates
+this failure across conditions, trials and cells, cancels queued work, and stops
+new iterations. Already in-flight calls finish cleanup; W1 checks the shared
+abort state again before invoking a model. Infrastructure failures are never
+converted into ordinary failed iterations or successful completed trials.
 
 Each candidate gets a new non-root container with networking disabled, all
 capabilities dropped, no-new-privileges, a read-only root and staged input mount,

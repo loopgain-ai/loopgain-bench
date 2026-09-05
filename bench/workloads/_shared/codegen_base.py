@@ -17,6 +17,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
+from ...cancellation import check_run_active
 from ...llm import Completion
 from ...workload import IterationOutcome, TrialInput, Workload
 from . import in_mock_mode
@@ -124,6 +125,7 @@ class CodegenWorkload(Workload):
         llm,
     ) -> IterationOutcome:
         # Fail before invoke can contact a model, including the first iteration.
+        check_run_active()
         ensure_available()
         spec = trial.initial_state["spec"]
         entry_point = trial.initial_state["entry_point"]
@@ -152,6 +154,7 @@ class CodegenWorkload(Workload):
                 f"Spec for reference:\n```python\n{spec}```"
             )
 
+        check_run_active()
         comp = invoke(self.framework, llm, prompt, max_tokens=600)
         text = comp.text or ""
         code = _extract_code(text)
