@@ -153,6 +153,38 @@ So a generated `DROP`/`DELETE`/`ATTACH`/runaway query can't write, escalate, or 
 
 ---
 
+### Mandatory candidate execution backend
+
+W1 generation and wrong-fixed-point candidate re-evaluation require a running
+Docker engine on a POSIX host and an already available trusted Python image
+(default `python:3.12-slim`; override with `BENCH_SANDBOX_IMAGE`). Image preparation
+is a separate operator action: this backend never pulls or builds images. It
+resolves the local image to an immutable ID and uses `--pull=never`. No host
+execution fallback exists, including in mock mode. W1 probes the actual backend
+before each iteration's model request; infrastructure or cleanup failure raises
+`SandboxUnavailable` and must be resolved before retrying.
+
+Each candidate gets a new non-root container with networking disabled, all
+capabilities dropped, no-new-privileges, a read-only root and staged input mount,
+a cleared environment (only fixed PATH/HOME), 128 MiB memory, one CPU, 32 PIDs,
+16 MiB scratch, CPU/file-descriptor limits, bounded input/output, and a wall-clock
+deadline. Only the worker and JSON request are mounted; repository files, host
+credentials and the Docker socket are excluded. The parent forcibly removes
+the container and its descendants on every exit and stops if cleanup cannot be
+confirmed. Keep Docker and the trusted image patched: containers rely on the
+host kernel and are not a separate VM security boundary.
+
+Run only synthetic isolation tests with an existing image:
+
+```bash
+BENCH_SANDBOX_INTEGRATION=1 python -m pytest tests/test_candidate_sandbox.py
+```
+
+These tests make no model calls or dataset downloads. The execution environment
+and resource limits differ from older host execution; do not mix new runs with
+registered historical results without reviewing and recording the protocol
+change and image ID. This security change does not recompute any research data.
+
 ## 7. Monitoring a background run (read the signals correctly)
 
 - **Liveness ≠ pgrep.** `pgrep -f bench_v2.runner` also matches the shell wrapper's

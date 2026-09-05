@@ -2,8 +2,8 @@
 
 Reads JSON {"code","entry_point","cases"} on stdin where cases is a list of
 [args_repr, expected_repr] pairs (Python reprs of the call args tuple/list and
-the canonical expected value). Execs the model code in process isolation (the
-parent SIGKILLs on timeout), calls entry_point(*args) for each case, and reports
+the canonical expected value). Execs the model code inside the mandatory Docker sandbox (the
+parent removes the container on timeout), calls entry_point(*args) for each case, and reports
 TWO comparisons:
 
   - strict:     got == expected               (order- and type-sensitive)
