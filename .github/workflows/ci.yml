@@ -1,0 +1,31 @@
+name: CI
+
+# Public repo: GitHub-hosted runners are free, so this is the source of truth.
+# scripts/ci-local.sh runs the same steps before every push for fast feedback.
+# Offline only: no API keys are configured and nothing here spends money.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Offline tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .tool-versions
+          cache: pip
+      - run: python -m pip install --disable-pip-version-check -e ".[dev,all]"
+      - run: make test PYTHON=python

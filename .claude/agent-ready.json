@@ -1,0 +1,8 @@
+{
+  "test_quick": "scripts/ci-local.sh",
+  "test_full": "scripts/ci-local.sh",
+  "ci_local": "scripts/ci-local.sh",
+  "max_retries": 3,
+  "test_timeout_seconds": 900,
+  "ci_timeout_seconds": 1800
+}
