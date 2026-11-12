@@ -1,10 +1,19 @@
 .PHONY: install install-dev test mock dry-run bench analyze judge judge-dry-run clean
 
+# Prefer the project venv when it exists, so `make test` works with or without it activated.
+PYTHON ?= $(shell [ -x .venv/bin/python ] && echo .venv/bin/python || echo python3)
+
 install:
 	pip install -e .
 
 install-dev:
 	pip install -e ".[dev,all]"
+
+# Offline test suite, no API calls or spend. Needs `make install-dev` first:
+# tests/test_adapter_parity.py imports the framework extras.
+# BENCH_MOCK=1 also runs the mock-runner smoke test.
+test:
+	BENCH_MOCK=1 $(PYTHON) -m pytest -q
 
 # Mock-mode end-to-end smoke (no API calls, deterministic, fast).
 # Verifies the harness pipes correctly; not a results-producing run.
